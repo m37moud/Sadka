@@ -1,11 +1,11 @@
 package com.example.sadkaquran.exoplayer
 
 import android.support.v4.media.MediaMetadataCompat
-import com.example.musicplayer.data.entities.Song
+import com.example.sadkaquran.data.models.Quran
 
-fun MediaMetadataCompat.toSong(): Song? {
+fun MediaMetadataCompat.toSong(): Quran? {
     return description?.let {
-        Song(
+        Quran(
             it.mediaId ?: "",
             it.title.toString(),
             it.subtitle.toString(),

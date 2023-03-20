@@ -26,11 +26,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val systemUiController = rememberSystemUiController()
-            val useDarkIcons = !isSystemInDarkTheme()
-            SideEffect {
-                systemUiController.setSystemBarsColor(color = Color.Transparent, darkIcons = useDarkIcons)
-            }
+//            val systemUiController = rememberSystemUiController()
+//            val useDarkIcons = !isSystemInDarkTheme()
+//            SideEffect {
+//                systemUiController.setSystemBarsColor(color = Color.Transparent, darkIcons = false)
+//            }
             SadkaQuranTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {

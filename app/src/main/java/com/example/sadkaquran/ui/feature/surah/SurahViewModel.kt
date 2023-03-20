@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sadkaquran.data.models.Data
+import com.example.sadkaquran.data.models.DataX
 import com.example.sadkaquran.data.models.Shikh
 import com.example.sadkaquran.data.models.Shiks
 import com.example.sadkaquran.repo.Repository
@@ -21,9 +22,9 @@ import javax.inject.Inject
 
 class SurahViewModel @Inject constructor(val myRepo: Repository, application: Application) :
     AndroidViewModel(application) {
-    private val _surah: MutableStateFlow<Resource<Data>> =
+    private val _surah: MutableStateFlow<Resource<DataX>> =
         MutableStateFlow(Resource.Loading)
-    val surah: StateFlow<Resource<Data>> = _surah
+    val surah: StateFlow<Resource<DataX>> = _surah
 
     fun getSurah(number:Int) {
         _surah.value = Resource.Loading
@@ -46,7 +47,7 @@ class SurahViewModel @Inject constructor(val myRepo: Repository, application: Ap
         }
     }
 
-    private fun handleSurahResponse(response: Response<Data>): Resource<Data> {
+    private fun handleSurahResponse(response: Response<DataX>): Resource<DataX> {
 
         return when {
             response.message().toString().contains("timeout") -> {

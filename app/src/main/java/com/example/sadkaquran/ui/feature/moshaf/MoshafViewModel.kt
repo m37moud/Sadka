@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.support.v4.media.MediaBrowserCompat
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +26,7 @@ import javax.inject.Inject
 import android.support.v4.media.MediaMetadataCompat.METADATA_KEY_MEDIA_ID
 import com.example.sadkaquran.data.models.*
 import com.example.sadkaquran.exoplayer.isPlayEnabled
+import com.example.sadkaquran.util.Constants.MEDIA_ROOT_ID
 
 @HiltViewModel
 class MoshafViewModel @Inject constructor(
@@ -61,6 +63,28 @@ class MoshafViewModel @Inject constructor(
     init {
         getElmoshaf()
         getShiks()
+//
+        mediaItems.value = (Resource.Loading)
+        musicServiceConnection.subscribe(
+            MEDIA_ROOT_ID,
+            object : MediaBrowserCompat.SubscriptionCallback() {
+                override fun onChildrenLoaded(
+                    parentId: String,
+                    children: MutableList<MediaBrowserCompat.MediaItem>
+                ) {
+                    super.onChildrenLoaded(parentId, children)
+                    val items = children.map {
+                        Quran(
+                            it.mediaId!!,
+                            it.description.title.toString(),
+                            it.description.subtitle.toString(),
+                            it.description.mediaUri.toString(),
+                            it.description.iconUri.toString()
+                        )
+                    }
+                    mediaItems.value = Resource.Success(items)
+                }
+            })
 
     }
 
@@ -196,5 +220,10 @@ class MoshafViewModel @Inject constructor(
             else -> false
         }
     }
-
+    override fun onCleared() {
+        super.onCleared()
+        musicServiceConnection.unsubscribe(
+            MEDIA_ROOT_ID,
+            object : MediaBrowserCompat.SubscriptionCallback() {})
+    }
 }

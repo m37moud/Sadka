@@ -11,14 +11,22 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Button
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -89,21 +97,27 @@ fun MoshafScreen(
 
                 val list = state.data
 //                Log.d("moshaf" , "${list.size}")
-                SurahLazyList(list, playbackStateCompat!!, onPlayClick = { surah ->
-                    val reader = Reader(surah.number, shikhIdentifier)
-                    uri = reader.getUri()
+                playbackStateCompat?.let {
+                    SurahLazyList(list,
+                        it,
+                        onPlayClick = { surah ->
+                            val reader = Reader(surah.number, shikhIdentifier)
+                            uri = reader.getUri()
 
-                    val quran = Quran(surah.number.toString(), title = surah.name,
-                       subtitle =  shikhName,url = uri)
-                    Log.d("Moshaf", "$reader")
-                    Log.d("Moshaf", "uri = $uri")
+                            val quran = Quran(
+                                surah.number.toString(), title = surah.name,
+                                subtitle = shikhName, url = uri
+                            )
+                            Log.d("Moshaf", "$reader")
+                            Log.d("Moshaf", "uri = $uri")
 
-                    viewModel.playOrToggleSong(quran, true)
-//                    mp.start()
+                            viewModel.playOrToggleSong(quran, true)
+                            //                    mp.start()
 
 
-                }) {
-                    navController.navigate(Screens.Surah.route)
+                        }) {
+                        navController.navigate("surah" + "/${it.number}/${shikhName}")
+                    }
                 }
             }
 
@@ -156,40 +170,53 @@ fun SurahItem(
 
         Text(text = surah.name)
 
-//        Button(
-//            onClick = { onPlayClick(surah) },
-//            shape = CircleShape,
-//            modifier = Modifier
-//                .size(50.dp)
-//                .clip(CircleShape)
-//        ) {
-//            Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "listen")
-//        }
-        val painter = rememberCoilPainter(
-            request = if (playbackStateCompat?.isPlaying == false) {
-                R.drawable.ic_round_play_arrow
-            } else {
-                R.drawable.ic_round_pause
-            }
-        )
-
-        Image(
-            painter = painter,
-            contentDescription = "Quran",
-            contentScale = ContentScale.Crop,
+        Button(
+            onClick = { onPlayClick(surah) },
+            shape = CircleShape,
             modifier = Modifier
-                .padding(end = 16.dp)
-                .size(48.dp)
-                .clickable(
-                    interactionSource = remember {
-                        MutableInteractionSource()
-                    },
-                    indication = rememberRipple(
-                        bounded = false,
-                        radius = 24.dp
-                    )
-                ) { onPlayClick(surah) },
-        )
+                .size(50.dp)
+                .clip(CircleShape)
+        ) {
+            if (playbackStateCompat?.isPlaying == false) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_round_play_arrow),
+                    contentDescription = "listen"
+                )
+            } else {
+                Icon(
+                    painter = painterResource(id =  R.drawable.ic_round_pause),
+                    contentDescription = "listen"
+                )
+            }
+
+        }
+//        val painter = rememberCoilPainter(
+//            request =
+//            if (playbackStateCompat?.isPlaying == false) {
+//                R.drawable.ic_round_play_arrow
+//            } else {
+//                R.drawable.ic_round_pause
+//            }
+//        )
+//
+//        Image(
+//            painter = painter,
+//            contentDescription = "Quran",
+//            contentScale = ContentScale.Crop,
+//
+//            modifier = Modifier
+//                .padding(end = 16.dp)
+//                .size(48.dp)
+//                .clickable(
+//                    interactionSource = remember {
+//                        MutableInteractionSource()
+//                    },
+//                    indication = rememberRipple(
+//                        bounded = false,
+//                        radius = 24.dp
+//                    )
+//                ) { onPlayClick(surah) },
+//        )
 
 
     }

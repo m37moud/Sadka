@@ -17,14 +17,15 @@ fun NavGraph(navController: NavHostController) {
             MoshafScreen(navController = navController)
         }
 
-        composable(route = Screens.Surah.route, arguments = listOf(navArgument("number") {
+        composable(route = Screens.Surah.route,
+            arguments = listOf(navArgument("number") {
             type = NavType.IntType
         }, navArgument("identifier") {
             type = NavType.StringType
         })) {
             val surahNumber = it.arguments?.getInt("number")
             val elShikh = it.arguments?.getString("identifier")
-            SurahScreen(navController = navController,surahNumber!!,elShikh!!)
+            SurahScreen(navController = navController, surahNumber!!, elShikh!!)
         }
 
     }

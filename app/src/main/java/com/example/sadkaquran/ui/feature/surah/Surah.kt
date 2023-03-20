@@ -60,7 +60,7 @@ fun SurahRead(surah : DataX){
     Box(modifier = Modifier.fillMaxSize() , contentAlignment = Alignment.Center) {
         Text(text = surah.name , modifier = Modifier.align(Alignment.TopCenter))
         for (aiah in surah.ayahs) {
-            Text(text = aiah, modifier = Modifier.align(Alignment.Center))
+            Text(text = aiah.text, modifier = Modifier.align(Alignment.Center))
         }
 
     }

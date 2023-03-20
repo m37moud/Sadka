@@ -61,7 +61,7 @@ class MusicService : MediaBrowserServiceCompat() {
     override fun onCreate() {
         super.onCreate()
         serviceScope.launch {
-//            musicSource.fetchMediaData()
+            musicSource.fetchMediaData()
         }
 
         val activityIntent = packageManager?.getLaunchIntentForPackage(packageName)?.let {
