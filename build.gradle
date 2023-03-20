@@ -1,6 +1,14 @@
 buildscript {
     ext {
         compose_ui_version = '1.1.1'
+        exoplayerVersion = '2.14.1'
+        accompanistCoilVersion = '0.13.0'
+        lifecycleKtxVersion = '2.3.1'
+        kotlinxCoroutinesCoreVersion = '1.5.1'
+        lifecycleViewmodelComposeVersion = '1.0.0-alpha07'
+        kotlinxCoroutinesAndroidVersion = '1.5.1'
+        hiltCompilerVersion = '1.0.0'
+        hilt_version = '2.40.1'
     }
 }// Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {

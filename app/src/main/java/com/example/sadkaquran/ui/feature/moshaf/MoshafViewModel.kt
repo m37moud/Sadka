@@ -5,12 +5,14 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sadkaquran.data.models.Data
-import com.example.sadkaquran.data.models.Elmoshaf
-import com.example.sadkaquran.data.models.Shikh
-import com.example.sadkaquran.data.models.Shiks
+import com.example.sadkaquran.exoplayer.MusicServiceConnection
+import com.example.sadkaquran.exoplayer.isPlaying
+import com.example.sadkaquran.exoplayer.isPrepared
 import com.example.sadkaquran.repo.Repository
 import com.example.sadkaquran.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,12 +22,33 @@ import kotlinx.coroutines.launch
 import retrofit2.Response
 import timber.log.Timber
 import javax.inject.Inject
+import android.support.v4.media.MediaMetadataCompat.METADATA_KEY_MEDIA_ID
+import com.example.sadkaquran.data.models.*
+import com.example.sadkaquran.exoplayer.isPlayEnabled
 
 @HiltViewModel
 class MoshafViewModel @Inject constructor(
     private val myRepo: Repository,
+    private val musicServiceConnection: MusicServiceConnection,
     application: Application
 ) : AndroidViewModel(application) {
+
+    val playbackState = musicServiceConnection.playbackState
+    var mediaItems = mutableStateOf<Resource<List<Quran>>>(Resource.Loading)
+
+    var showPlayerFullScreen by mutableStateOf(false)
+
+    val isConnected = musicServiceConnection.isConnected
+    val networkError = musicServiceConnection.networkFailure
+    val curPlayingSong = musicServiceConnection.nowPlaying
+
+    val currentPlayingSong = musicServiceConnection.currentPlayingSong
+
+    val songIsPlaying: Boolean
+        get() = playbackState.value?.isPlaying == true
+
+
+
 
     private val _moshafList: MutableStateFlow<Resource<List<Data>>> =
         MutableStateFlow(Resource.Loading)
@@ -41,7 +64,7 @@ class MoshafViewModel @Inject constructor(
 
     }
 
-    fun getElmoshaf() {
+    private fun getElmoshaf() {
         Log.d("view model", "getElmoshaf called")
 
         viewModelScope.launch {
@@ -133,6 +156,29 @@ class MoshafViewModel @Inject constructor(
 
             }
 
+        }
+    }
+
+//    fun playOrToggleSong(mediaItem: Song, toggle: Boolean = false) {
+    fun playOrToggleSong(mediaItem: Quran, toggle: Boolean = false) {
+        val isPrepared = playbackState.value?.isPrepared ?: false
+        if (isPrepared && mediaItem.mediaId ==
+            currentPlayingSong.value?.getString(METADATA_KEY_MEDIA_ID)
+//            curPlayingSong.value?.getString(METADATA_KEY_MEDIA_ID)
+        ) {
+            playbackState.value?.let { playbackState ->
+                when {
+                    playbackState.isPlaying -> {
+                        if (toggle) musicServiceConnection.transportController.pause()
+                    }
+                    playbackState.isPlayEnabled -> {
+                        musicServiceConnection.transportController.play()
+                    }
+                    else -> Unit
+                }
+            }
+        } else {
+            musicServiceConnection.transportController.playFromMediaId(mediaItem.mediaId, null)
         }
     }
 
