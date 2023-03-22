@@ -44,8 +44,9 @@ object QuranModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient):QuranApiService{
         return Retrofit.Builder()
-            .client(okHttpClient)
             .baseUrl(BASE_URL)
+            .client(okHttpClient)
+
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(QuranApiService::class.java)

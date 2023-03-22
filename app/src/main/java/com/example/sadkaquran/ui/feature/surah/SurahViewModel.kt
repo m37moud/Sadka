@@ -7,12 +7,11 @@ import android.net.NetworkCapabilities
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sadkaquran.data.models.Data
-import com.example.sadkaquran.data.models.DataX
-import com.example.sadkaquran.data.models.Shikh
-import com.example.sadkaquran.data.models.Shiks
+import com.example.sadkaquran.data.models.*
 import com.example.sadkaquran.repo.Repository
 import com.example.sadkaquran.util.Resource
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -20,26 +19,22 @@ import retrofit2.Response
 import timber.log.Timber
 import javax.inject.Inject
 
+@HiltViewModel
 class SurahViewModel @Inject constructor(val myRepo: Repository, application: Application) :
     AndroidViewModel(application) {
     private val _surah: MutableStateFlow<Resource<DataX>> =
         MutableStateFlow(Resource.Loading)
     val surah: StateFlow<Resource<DataX>> = _surah
 
-    fun getSurah(number:Int) {
+    fun getSurah(number: Int) {
         _surah.value = Resource.Loading
         viewModelScope.launch {
             if (isThereConnection()) {
                 Timber.tag("view model").d("err")
 
-//                Log.d("view model ", "${list.shikhList.joinToString("\n")}")
                 _surah.value = handleSurahResponse(myRepo.getSurah(number))
 
-                Timber.tag("view model").d("err")
-
-            }
-            else
-            {
+            } else {
                 _surah.value = Resource.Error("No Internet Connection")
 
             }
@@ -47,7 +42,7 @@ class SurahViewModel @Inject constructor(val myRepo: Repository, application: Ap
         }
     }
 
-    private fun handleSurahResponse(response: Response<DataX>): Resource<DataX> {
+    private fun handleSurahResponse(response: Response<Surah>): Resource<DataX> {
 
         return when {
             response.message().toString().contains("timeout") -> {
@@ -56,8 +51,11 @@ class SurahViewModel @Inject constructor(val myRepo: Repository, application: Ap
             response.code() == 402 -> {
                 Resource.Error("API Key Limited.")
             }
+//            response.code() == 429 -> {
+//                Resource.Loading
+//            }
             response.isSuccessful -> {
-                val surah = response.body()!!
+                val surah = response.body()?.data!!
                 Log.d("view model", "${surah}")
 
 
@@ -69,6 +67,7 @@ class SurahViewModel @Inject constructor(val myRepo: Repository, application: Ap
         }
 
     }
+
     private fun isThereConnection(): Boolean {
         val connectivityManager = getApplication<Application>().getSystemService(
             Context.CONNECTIVITY_SERVICE

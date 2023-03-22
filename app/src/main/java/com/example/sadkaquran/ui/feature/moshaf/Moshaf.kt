@@ -166,7 +166,16 @@ fun SurahItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = surah.number.toString())
+//        Box (modifier = Modifier.wrapContentSize()){
+//
+////            Text(text = surah.number.toString())
+//        }
+
+        Image(
+            painter = painterResource(id = R.drawable.ic_round_pause),
+            contentDescription = "number"
+            , modifier = Modifier.size(50.dp)
+        )
 
         Text(text = surah.name)
 
@@ -177,46 +186,46 @@ fun SurahItem(
                 .size(50.dp)
                 .clip(CircleShape)
         ) {
-            if (playbackStateCompat?.isPlaying == false) {
+            if (!playbackStateCompat.isPlaying) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_round_play_arrow),
                     contentDescription = "listen"
                 )
             } else {
                 Icon(
-                    painter = painterResource(id =  R.drawable.ic_round_pause),
+                    painter = painterResource(id = R.drawable.ic_round_pause),
                     contentDescription = "listen"
                 )
             }
 
         }
-//        val painter = rememberCoilPainter(
-//            request =
-//            if (playbackStateCompat?.isPlaying == false) {
-//                R.drawable.ic_round_play_arrow
-//            } else {
-//                R.drawable.ic_round_pause
-//            }
-//        )
-//
-//        Image(
-//            painter = painter,
-//            contentDescription = "Quran",
-//            contentScale = ContentScale.Crop,
-//
-//            modifier = Modifier
-//                .padding(end = 16.dp)
-//                .size(48.dp)
-//                .clickable(
-//                    interactionSource = remember {
-//                        MutableInteractionSource()
-//                    },
-//                    indication = rememberRipple(
-//                        bounded = false,
-//                        radius = 24.dp
-//                    )
-//                ) { onPlayClick(surah) },
-//        )
+        val painter = rememberCoilPainter(
+            request =
+            if (playbackStateCompat?.isPlaying == false) {
+                R.drawable.ic_round_play_arrow
+            } else {
+                R.drawable.ic_round_pause
+            }
+        )
+
+        Image(
+            painter = painter,
+            contentDescription = "Quran",
+            contentScale = ContentScale.Crop,
+
+            modifier = Modifier
+                .padding(end = 16.dp)
+                .size(48.dp)
+                .clickable(
+                    interactionSource = remember {
+                        MutableInteractionSource()
+                    },
+                    indication = rememberRipple(
+                        bounded = false,
+                        radius = 24.dp
+                    )
+                ) { onPlayClick(surah) },
+        )
 
 
     }

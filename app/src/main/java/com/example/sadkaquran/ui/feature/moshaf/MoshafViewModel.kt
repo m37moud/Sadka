@@ -97,14 +97,6 @@ class MoshafViewModel @Inject constructor(
 
                 _moshafList.value = handleListResponse(myRepo.getElmoshaf())
 
-//                Log.d("view model", "${list.surahList.joinToString("\n")}")
-//                if (list.code == 200){
-//                    _moshafList.value = Resource.Success(list.surahList)
-//                }
-//                else{
-//                    _moshafList.value = Resource.Error("${list.status}")
-//                }
-
 
                 Timber.tag("view model").d("err")
 

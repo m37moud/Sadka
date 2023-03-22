@@ -1,35 +1,36 @@
 package com.example.sadkaquran.ui.feature.surah
 
 import android.util.Log
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.sadkaquran.data.models.Data
 import com.example.sadkaquran.data.models.DataX
-import com.example.sadkaquran.data.models.Reader
-import com.example.sadkaquran.navigation.Screens
+import com.example.sadkaquran.data.models.Surah
 import com.example.sadkaquran.ui.component.ErrorUI
 import com.example.sadkaquran.ui.component.LoadingScreen
-import com.example.sadkaquran.ui.feature.moshaf.SurahLazyList
 import com.example.sadkaquran.util.Resource
 
 @Composable
 fun SurahScreen(
     navController: NavController,
-    shrahNumber: Int,
-    elShikh: String,
+    shrahNumber: Int = 1,
+    elShikh: String = "",
     viewModel: SurahViewModel = hiltViewModel()
 ) {
-    viewModel.getSurah(shrahNumber)
+
     val surah = viewModel.surah.collectAsState().value
+    viewModel.getSurah(shrahNumber)
+
+//    val surah = produceState<Resource<DataX>>(initialValue = Resource.Loading) {
+//        value = viewModel.getSurah(shrahNumber)
+//    }.value
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -42,8 +43,8 @@ fun SurahScreen(
             is Resource.Success -> {
 
                 val read = state.data
-//                Log.d("moshaf" , "${list.size}")
-                SurahRead(read)
+                Log.d("moshaf" , "${read.toString()}")
+//                SurahRead(read)
             }
 
             is Resource.Error -> {
@@ -59,9 +60,17 @@ fun SurahScreen(
 fun SurahRead(surah : DataX){
     Box(modifier = Modifier.fillMaxSize() , contentAlignment = Alignment.Center) {
         Text(text = surah.name , modifier = Modifier.align(Alignment.TopCenter))
-        for (aiah in surah.ayahs) {
-            Text(text = aiah.text, modifier = Modifier.align(Alignment.Center))
-        }
+//        for (aiah in surah.ayahs) {
+//            Row() {
+//
+//                Text(text = aiah.text,
+////                    modifier = Modifier.align(Alignment.Center)
+//                )
+//                Text(text = aiah.number.toString(),
+////                    modifier = Modifier.align(Alignment.Center)
+//                )
+//            }
+//        }
 
     }
 

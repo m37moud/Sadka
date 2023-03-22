@@ -1,5 +1,6 @@
 package com.example.sadkaquran.navigation
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -25,6 +26,7 @@ fun NavGraph(navController: NavHostController) {
         })) {
             val surahNumber = it.arguments?.getInt("number")
             val elShikh = it.arguments?.getString("identifier")
+            Log.d("NavGraph","$surahNumber")
             SurahScreen(navController = navController, surahNumber!!, elShikh!!)
         }
 
