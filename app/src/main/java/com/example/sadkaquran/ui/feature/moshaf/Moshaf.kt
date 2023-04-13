@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Button
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Star
@@ -67,66 +65,69 @@ fun MoshafScreen(
 //
 //    mp.setDataSource(context, Uri.parse(uri))
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
 
-        when (val state = shikhList) {
-            is Resource.Success -> {
-                ShikhMenuDropDown(
-                    modifier = Modifier.fillMaxWidth(),
-                    name = "Shikh",
-                    shiks = state.data,
-                    menuItemSelected = { shikh ->
-                        shikhIdentifier = shikh!!.identifier
-                        shikhName = shikh!!.name
-                    })
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+
+            when (val state = shikhList) {
+                is Resource.Success -> {
+                    ShikhMenuDropDown(
+                        modifier = Modifier.fillMaxWidth(),
+                        name = "Shikh",
+                        shiks = state.data,
+                        menuItemSelected = { shikh ->
+                            shikhIdentifier = shikh!!.identifier
+                            shikhName = shikh!!.name
+                        })
+                }
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
 
 
-        when (val state = elMoshaf) {
-            is Resource.Loading -> {
-                LoadingScreen()
-            }
-            is Resource.Success -> {
+            when (val state = elMoshaf) {
+                is Resource.Loading -> {
+                    LoadingScreen()
+                }
+                is Resource.Success -> {
 
-                val list = state.data
+                    val list = state.data
 //                Log.d("moshaf" , "${list.size}")
-                playbackStateCompat?.let {
-                    SurahLazyList(list,
-                        it,
-                        onPlayClick = { surah ->
-                            val reader = Reader(surah.number, shikhIdentifier)
-                            uri = reader.getUri()
+                    playbackStateCompat?.let {
+                        SurahLazyList(list,
+                            it,
+                            onPlayClick = { surah ->
+                                val reader = Reader(surah.number, shikhIdentifier)
+                                uri = reader.getUri()
 
-                            val quran = Quran(
-                                surah.number.toString(), title = surah.name,
-                                subtitle = shikhName, url = uri
-                            )
-                            Log.d("Moshaf", "$reader")
-                            Log.d("Moshaf", "uri = $uri")
+                                val quran = Quran(
+                                    surah.number.toString(), title = surah.name,
+                                    subtitle = shikhName, url = uri
+                                )
+                                Log.d("Moshaf", "$reader")
+                                Log.d("Moshaf", "uri = $uri")
 
-                            viewModel.playOrToggleSong(quran, true)
-                            //                    mp.start()
+                                viewModel.playOrToggleSong(quran, true)
+                                //                    mp.start()
 
 
-                        }) {
-                        navController.navigate("surah" + "/${it.number}/${shikhName}")
+                            }) {
+                            navController.navigate("surah" + "/${it.number}/${shikhName}")
+                        }
                     }
+                }
+
+                is Resource.Error -> {
+                    ErrorUI(state.error)
                 }
             }
 
-            is Resource.Error -> {
-                ErrorUI(state.error)
-            }
+
         }
-
-
     }
 
 }
