@@ -1,7 +1,6 @@
 package com.example.sadkaquran.ui.feature.moshaf
 
-import android.media.MediaPlayer
-import android.net.Uri
+import android.content.Context
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import androidx.compose.animation.animateContentSize
@@ -13,9 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -33,12 +29,13 @@ import com.example.sadkaquran.data.models.Data
 import com.example.sadkaquran.data.models.Quran
 import com.example.sadkaquran.data.models.Reader
 import com.example.sadkaquran.exoplayer.isPlaying
-import com.example.sadkaquran.navigation.Screens
 import com.example.sadkaquran.ui.component.ErrorUI
 import com.example.sadkaquran.ui.component.LoadingScreen
 import com.example.sadkaquran.ui.component.ShikhMenuDropDown
+import com.example.sadkaquran.util.MediaPlayerManager
 import com.example.sadkaquran.util.Resource
 import com.google.accompanist.coil.rememberCoilPainter
+
 
 @Composable
 fun MoshafScreen(
@@ -82,6 +79,7 @@ fun MoshafScreen(
                         menuItemSelected = { shikh ->
                             shikhIdentifier = shikh!!.identifier
                             shikhName = shikh!!.name
+//                            handleMoshafWithReader(shikhName)
                         })
                 }
             }
@@ -110,8 +108,9 @@ fun MoshafScreen(
                                 )
                                 Log.d("Moshaf", "$reader")
                                 Log.d("Moshaf", "uri = $uri")
-
-                                viewModel.playOrToggleSong(quran, true)
+//                                MediaPlayerManager(context, uri)
+                                callPlayerHandler(context, uri)
+//                                viewModel.playOrToggleSong(quran, true)
                                 //                    mp.start()
 
 
@@ -174,8 +173,7 @@ fun SurahItem(
 
         Image(
             painter = painterResource(id = R.drawable.ic_round_pause),
-            contentDescription = "number"
-            , modifier = Modifier.size(50.dp)
+            contentDescription = "number", modifier = Modifier.size(50.dp)
         )
 
         Text(text = surah.name)
@@ -229,5 +227,15 @@ fun SurahItem(
         )
 
 
+    }
+}
+
+var mMediaPlayerManager: MediaPlayerManager? = null
+fun callPlayerHandler(ctx : Context, uri:String) {
+    mMediaPlayerManager = MediaPlayerManager(ctx,uri)
+    if (mMediaPlayerManager!!.getStatus() == MediaPlayerManager.IS_STOPPED) {
+        mMediaPlayerManager?.start()
+    } else {
+        mMediaPlayerManager?.stop()
     }
 }

@@ -11,10 +11,7 @@ import java.io.IOException
 
 class MediaPlayerManager(mActivity: Context, urlStreaming: String?) : MediaPlayer.OnErrorListener,
     OnPreparedListener {
-    val IS_PLAYING = true
-    val IS_STOPPED = false
-    private val MEDIA_PLAYER = "Media Player"
-    private var currentState: State? = null
+
     private var UrlStreaming: String? = null
     private var mProgressBar: Dialog? = null
     private var mMediaPlayer: MediaPlayer? = null
@@ -69,32 +66,30 @@ class MediaPlayerManager(mActivity: Context, urlStreaming: String?) : MediaPlaye
         // mMediaPlayer in IDLE state
         // mMediaPlayer in IDLE state
         var audioAttributes: AudioAttributes? = null
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            audioAttributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_MEDIA)
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                .build()
-            mMediaPlayer!!.setAudioAttributes(audioAttributes)
-        }
+        audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .build()
+        mMediaPlayer!!.setAudioAttributes(audioAttributes)
         try {
             // Setting the data source to use.
             mMediaPlayer!!.setDataSource(UrlStreaming)
         } catch (e: IOException) {
-            Log.e(MEDIA_PLAYER, "IOException: $e")
+            Log.e(Companion.MEDIA_PLAYER, "IOException: $e")
             errorMediaPlayer(
                 mMediaPlayer,
                 MediaPlayer.MEDIA_ERROR_IO,
                 MediaPlayer.MEDIA_ERROR_UNKNOWN
             )
         } catch (e: IllegalStateException) {
-            Log.e(MEDIA_PLAYER, "IllegalStateException: $e")
+            Log.e(Companion.MEDIA_PLAYER, "IllegalStateException: $e")
             errorMediaPlayer(
                 mMediaPlayer,
                 MediaPlayer.MEDIA_ERROR_IO,
                 MediaPlayer.MEDIA_ERROR_UNKNOWN
             )
         } catch (e: IllegalArgumentException) {
-            Log.e(MEDIA_PLAYER, "IllegalArgumentException: $e")
+            Log.e(Companion.MEDIA_PLAYER, "IllegalArgumentException: $e")
             errorMediaPlayer(
                 mMediaPlayer,
                 MediaPlayer.MEDIA_ERROR_IO,
@@ -190,7 +185,16 @@ class MediaPlayerManager(mActivity: Context, urlStreaming: String?) : MediaPlaye
         } else null
     }
 
-    private enum class State {
+    companion object {
+        const val IS_PLAYING = true
+        const val IS_STOPPED = false
+        const val MEDIA_PLAYER = "Media Player"
+        var currentState: State? = null
+
+    }
+
+    enum class State {
         NULL, IDLE, INITIALIZED, PREPARING, PREPARED, STARTED, STOPPED, END, ERROR
     }
 }
+
