@@ -5,6 +5,7 @@
     <color name="primary_green_dark">#003826</color>
     <color name="primary_green_light">#A5F2CD</color>
     <color name="primary_green_container">#005139</color>
+    <color name="ic_launcher_background">#062F29</color>
 
     <!-- Warm Gilded Sand / Quranic Gold Accents -->
     <color name="secondary_gold">#6F5B2E</color>
