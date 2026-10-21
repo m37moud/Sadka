@@ -14,12 +14,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.sadkaquran.navigation.NavGraph
+import com.example.sadkaquran.navigation.Screens
 import com.example.sadkaquran.playback.QuranPlayerManager
 import com.example.sadkaquran.ui.component.UnifiedMiniPlayer
 import com.example.sadkaquran.ui.theme.SadkaQuranTheme
@@ -33,6 +37,7 @@ class MainActivity : ComponentActivity() {
     lateinit var playerManager: QuranPlayerManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         setContent {
             SadkaQuranTheme {
@@ -69,13 +74,18 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(playerManager: QuranPlayerManager) {
     val navController = rememberNavController()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+    val isSplash = currentRoute == null || currentRoute == Screens.Splash.route
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavGraph(navController = navController)
 
-        UnifiedMiniPlayer(
-            playerManager = playerManager,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+        if (!isSplash) {
+            UnifiedMiniPlayer(
+                playerManager = playerManager,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
     }
 }

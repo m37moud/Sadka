@@ -68,14 +68,12 @@ class MoshafViewModel @Inject constructor(
         loadData()
     }
 
-    fun loadData() {
+    fun loadData(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _moshafList.value = Resource.Loading
-            _moshafList.value = repository.getMoshafList()
+            _moshafList.value = repository.getMoshafList(forceRefresh)
         }
         viewModelScope.launch {
-            _shiks.value = Resource.Loading
-            _shiks.value = repository.getAllShikh()
+            _shiks.value = repository.getAllShikh(forceRefresh)
         }
     }
 

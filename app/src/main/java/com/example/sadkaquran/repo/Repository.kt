@@ -5,6 +5,8 @@ import com.example.sadkaquran.data.models.*
 import com.example.sadkaquran.data.remote.QuranApiService
 import com.example.sadkaquran.util.Resource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,11 +15,35 @@ import javax.inject.Singleton
 class Repository @Inject constructor(
     private val service: QuranApiService
 ) {
-    suspend fun getMoshafList(): Resource<List<Data>> = withContext(Dispatchers.IO) {
+    @Volatile
+    private var cachedMoshafList: List<Data>? = null
+
+    @Volatile
+    private var cachedShikhList: List<Shikh>? = null
+
+    suspend fun preloadData() = withContext(Dispatchers.IO) {
+        try {
+            coroutineScope {
+                val moshafDeferred = async { getMoshafList() }
+                val shikhDeferred = async { getAllShikh() }
+                moshafDeferred.await()
+                shikhDeferred.await()
+            }
+        } catch (e: Exception) {
+            Log.w("Repository", "Preload warning: ${e.localizedMessage}")
+        }
+    }
+
+    suspend fun getMoshafList(forceRefresh: Boolean = false): Resource<List<Data>> = withContext(Dispatchers.IO) {
+        if (!forceRefresh && cachedMoshafList != null) {
+            return@withContext Resource.Success(cachedMoshafList!!)
+        }
         try {
             val response = service.getElmoshaf()
             if (response.isSuccessful && response.body() != null) {
-                Resource.Success(response.body()!!.data)
+                val data = response.body()!!.data
+                cachedMoshafList = data
+                Resource.Success(data)
             } else {
                 Resource.Error(response.message().ifBlank { "Failed to load Surahs" })
             }
@@ -41,7 +67,10 @@ class Repository @Inject constructor(
         }
     }
 
-    suspend fun getAllShikh(): Resource<List<Shikh>> = withContext(Dispatchers.IO) {
+    suspend fun getAllShikh(forceRefresh: Boolean = false): Resource<List<Shikh>> = withContext(Dispatchers.IO) {
+        if (!forceRefresh && cachedShikhList != null) {
+            return@withContext Resource.Success(cachedShikhList!!)
+        }
         try {
             val response = service.getAllShikh()
             if (response.isSuccessful && response.body() != null) {
@@ -50,6 +79,7 @@ class Repository @Inject constructor(
                     it.format.equals("audio", ignoreCase = true) || it.type.equals("versebyverse", ignoreCase = true)
                 }
                 val list = if (reciters.isNotEmpty()) reciters else response.body()!!.data
+                cachedShikhList = list
                 Resource.Success(list)
             } else {
                 Resource.Error(response.message().ifBlank { "Failed to load reciters" })
