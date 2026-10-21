@@ -4,92 +4,67 @@ import android.util.Log
 import com.example.sadkaquran.data.models.*
 import com.example.sadkaquran.data.remote.QuranApiService
 import com.example.sadkaquran.util.Resource
-import dagger.hilt.android.scopes.ActivityScoped
-import retrofit2.Response
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Singleton
 
-@ActivityScoped
-class Repository @Inject constructor(private val service: QuranApiService) {
-    suspend fun getElmoshaf() = service.getElmoshaf()
-    suspend fun getSurah(number: Int) = service.getSurah(number)
-    suspend fun getAllShikh() = service.getAllShikh()
-
-    suspend fun getQuran(): List<Quran> {
-        val elmoshaf: List<Data> = handleListResponse(service.getElmoshaf())
-
-        val elshikh = handleShiksResponse(service.getAllShikh())
-        val quran = mutableListOf<Quran>()
-
-        for (surah in elmoshaf) {
-            Quran(
-                surah.number.toString(),
-                surah.name,
-                elshikh[1].name,
-                url = "https://cdn.islamic.network/quran/audio-surah/128/${elshikh[1].identifier}/${surah.number.toString()}.mp3"
-            ).apply {
-                quran.add(this)
+@Singleton
+class Repository @Inject constructor(
+    private val service: QuranApiService
+) {
+    suspend fun getMoshafList(): Resource<List<Data>> = withContext(Dispatchers.IO) {
+        try {
+            val response = service.getElmoshaf()
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!.data)
+            } else {
+                Resource.Error(response.message().ifBlank { "Failed to load Surahs" })
             }
-
+        } catch (e: Exception) {
+            Log.e("Repository", "Error fetching Moshaf list", e)
+            Resource.Error(e.localizedMessage ?: "Network error occurred")
         }
-
-        return quran
     }
 
-    private fun handleListResponse(response: Response<Elmoshaf>): List<Data> {
-
-        return when {
-            response.message().toString().contains("timeout") -> {
-//                Resource.Error(error = "Connection Timeout")
-                emptyList<Data>()
-
+    suspend fun getSurah(number: Int): Resource<DataX> = withContext(Dispatchers.IO) {
+        try {
+            val response = service.getSurah(number)
+            if (response.isSuccessful && response.body()?.data != null) {
+                Resource.Success(response.body()!!.data)
+            } else {
+                Resource.Error(response.message().ifBlank { "Failed to load Surah" })
             }
-            response.code() == 402 -> {
-//                Resource.Error("API Key Limited.")
-                emptyList<Data>()
-
-            }
-            response.isSuccessful -> {
-                val moshaf = response.body()!!.data
-                Log.d("view model", "${moshaf}")
-
-
-//                Resource.Success(moshaf)
-                moshaf
-            }
-            else -> {
-//                Resource.Error(response.message())
-                emptyList<Data>()
-
-            }
+        } catch (e: Exception) {
+            Log.e("Repository", "Error fetching Surah $number", e)
+            Resource.Error(e.localizedMessage ?: "Network error occurred")
         }
-
     }
 
-    private fun handleShiksResponse(response: Response<Shiks>): List<Shikh> {
-
-        return when {
-            response.message().toString().contains("timeout") -> {
-                Resource.Error(error = "Connection Timeout")
-                emptyList<Shikh>()
+    suspend fun getAllShikh(): Resource<List<Shikh>> = withContext(Dispatchers.IO) {
+        try {
+            val response = service.getAllShikh()
+            if (response.isSuccessful && response.body() != null) {
+                // Filter reciters that have audio format
+                val reciters = response.body()!!.data.filter {
+                    it.format.equals("audio", ignoreCase = true) || it.type.equals("versebyverse", ignoreCase = true)
+                }
+                val list = if (reciters.isNotEmpty()) reciters else response.body()!!.data
+                Resource.Success(list)
+            } else {
+                Resource.Error(response.message().ifBlank { "Failed to load reciters" })
             }
-            response.code() == 402 -> {
-                Resource.Error("API Key Limited.")
-                emptyList<Shikh>()
-            }
-            response.isSuccessful -> {
-                val moshaf = response.body()!!.data
-                Log.d("view model", "${moshaf}")
-
-
-//                Resource.Success(moshaf)
-                moshaf
-            }
-            else -> {
-//                Resource.Error(response.message())
-                emptyList<Shikh>()
-            }
+        } catch (e: Exception) {
+            Log.e("Repository", "Error fetching reciters", e)
+            Resource.Error(e.localizedMessage ?: "Network error occurred")
         }
-
     }
 
+    fun getSurahAudioUrl(surahNumber: Int, reciterIdentifier: String): String {
+        return "https://cdn.islamic.network/quran/audio-surah/128/$reciterIdentifier/$surahNumber.mp3"
+    }
+
+    fun getAyahAudioUrl(ayahNumberInQuran: Int, reciterIdentifier: String): String {
+        return "https://cdn.islamic.network/quran/audio/128/$reciterIdentifier/$ayahNumberInQuran.mp3"
+    }
 }

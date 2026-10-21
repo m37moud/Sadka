@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SadkaQuran</string>
-    <string name="notification_channel_name">Music Channel</string>
-    <string name="notification_channel_description">Shows the currently playing music</string>
+    <string name="app_name">صدقة جارية</string>
+    <string name="notification_channel_name">تلاوة القرآن الكريم</string>
+    <string name="notification_channel_description">عرض المشغل والإشعارات الخاصة بالاستماع إلى القرآن الكريم</string>
 </resources>

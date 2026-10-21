@@ -1,10 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- Brand Fresh Botanical Green (Eco-friendly tone) -->
+    <color name="primary_green">#136A4C</color>
+    <color name="primary_green_dark">#003826</color>
+    <color name="primary_green_light">#A5F2CD</color>
+    <color name="primary_green_container">#005139</color>
+
+    <!-- Warm Gilded Sand / Quranic Gold Accents -->
+    <color name="secondary_gold">#6F5B2E</color>
+    <color name="secondary_gold_light">#FBE1A6</color>
+    <color name="secondary_gold_dark">#DEC58D</color>
+
+    <!-- Surface & Background -->
+    <color name="surface_light">#F6FBF5</color>
+    <color name="surface_dark">#0F1512</color>
+    <color name="surface_variant_light">#DBE5DE</color>
+    <color name="surface_variant_dark">#3F4944</color>
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Legacy aliases mapped to the fresh green brand palette -->
+    <color name="purple_200">#89D6B2</color>
+    <color name="purple_500">#136A4C</color>
+    <color name="purple_700">#0E4D37</color>
+    <color name="teal_200">#6F5B2E</color>
+    <color name="teal_700">#3A656F</color>
 </resources>

@@ -1,86 +1,115 @@
 package com.example.sadkaquran.ui.feature.surah
 
-import android.app.Application
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sadkaquran.data.models.*
+import com.example.sadkaquran.data.local.BookmarkItem
+import com.example.sadkaquran.data.local.SadkaPreferences
+import com.example.sadkaquran.data.models.AyahX
+import com.example.sadkaquran.data.models.DataX
+import com.example.sadkaquran.playback.QuranPlayerManager
 import com.example.sadkaquran.repo.Repository
+import com.example.sadkaquran.util.Constants
 import com.example.sadkaquran.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.scopes.ViewModelScoped
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import retrofit2.Response
-import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
-class SurahViewModel @Inject constructor(val myRepo: Repository, application: Application) :
-    AndroidViewModel(application) {
-    private val _surah: MutableStateFlow<Resource<DataX>> =
-        MutableStateFlow(Resource.Loading)
-    val surah: StateFlow<Resource<DataX>> = _surah
+class SurahViewModel @Inject constructor(
+    private val repository: Repository,
+    val playerManager: QuranPlayerManager,
+    val preferences: SadkaPreferences
+) : ViewModel() {
+
+    private val _surah = MutableStateFlow<Resource<DataX>>(Resource.Loading)
+    val surah: StateFlow<Resource<DataX>> = _surah.asStateFlow()
+
+    val arabicFontSize: StateFlow<Float> = preferences.arabicFontSizeFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_FONT_SIZE)
+
+    val selectedReciterId: StateFlow<String> = preferences.reciterIdFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_RECITER_ID)
+
+    val selectedReciterName: StateFlow<String> = preferences.reciterNameFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_RECITER_NAME)
+
+    val bookmarks: StateFlow<List<BookmarkItem>> = preferences.bookmarksFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val isPlaying: StateFlow<Boolean> = playerManager.isPlaying
+    val currentSurahNumber: StateFlow<Int?> = playerManager.currentSurahNumber
+    val currentAyahNumber: StateFlow<Int?> = playerManager.currentAyahNumber
+    val isBuffering: StateFlow<Boolean> = playerManager.isBuffering
 
     fun getSurah(number: Int) {
         _surah.value = Resource.Loading
         viewModelScope.launch {
-            if (isThereConnection()) {
-                Timber.tag("view model").d("err")
-
-                _surah.value = handleSurahResponse(myRepo.getSurah(number))
-
-            } else {
-                _surah.value = Resource.Error("No Internet Connection")
-
+            val result = repository.getSurah(number)
+            _surah.value = result
+            if (result is Resource.Success) {
+                // Update last read surah automatically
+                preferences.saveLastRead(
+                    surahNumber = result.data.number,
+                    surahName = result.data.name,
+                    ayahNumber = 1
+                )
             }
-
         }
     }
 
-    private fun handleSurahResponse(response: Response<Surah>): Resource<DataX> {
-
-        return when {
-            response.message().toString().contains("timeout") -> {
-                Resource.Error(error = "Connection Timeout")
-            }
-            response.code() == 402 -> {
-                Resource.Error("API Key Limited.")
-            }
-//            response.code() == 429 -> {
-//                Resource.Loading
-//            }
-            response.isSuccessful -> {
-                val surah = response.body()?.data!!
-                Log.d("view model", "${surah}")
-
-
-                Resource.Success(surah)
-            }
-            else -> {
-                Resource.Error(response.message())
-            }
-        }
-
-    }
-
-    private fun isThereConnection(): Boolean {
-        val connectivityManager = getApplication<Application>().getSystemService(
-            Context.CONNECTIVITY_SERVICE
-        ) as ConnectivityManager
-        val activeNetwork = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork) ?: return false
-        return when {
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-            else -> false
+    fun updateFontSize(newSize: Float) {
+        viewModelScope.launch {
+            preferences.saveArabicFontSize(newSize)
         }
     }
 
+    fun toggleBookmark(ayah: AyahX, surahName: String) {
+        val surahData = (_surah.value as? Resource.Success)?.data ?: return
+        viewModelScope.launch {
+            preferences.toggleBookmark(
+                surahNumber = surahData.number,
+                ayahNumber = ayah.numberInSurah,
+                surahName = surahName
+            )
+        }
+    }
 
+    fun saveLastReadAyah(ayahNumberInSurah: Int) {
+        val surahData = (_surah.value as? Resource.Success)?.data ?: return
+        viewModelScope.launch {
+            preferences.saveLastRead(
+                surahNumber = surahData.number,
+                surahName = surahData.name,
+                ayahNumber = ayahNumberInSurah
+            )
+        }
+    }
+
+    fun playSurahAudio(surah: DataX) {
+        val isCurrentlyPlaying = (currentSurahNumber.value == surah.number && isPlaying.value)
+        if (isCurrentlyPlaying) {
+            playerManager.pause()
+        } else if (currentSurahNumber.value == surah.number) {
+            playerManager.resume()
+        } else {
+            playerManager.playSurah(
+                surahNumber = surah.number,
+                surahName = surah.name,
+                reciterId = selectedReciterId.value,
+                reciterName = selectedReciterName.value
+            )
+        }
+    }
+
+    fun playAyahAudio(ayah: AyahX, surah: DataX) {
+        playerManager.playAyah(
+            surahNumber = surah.number,
+            ayahNumberInSurah = ayah.numberInSurah,
+            ayahNumberInQuran = ayah.number,
+            surahName = surah.name,
+            reciterId = selectedReciterId.value,
+            reciterName = selectedReciterName.value
+        )
+    }
 }

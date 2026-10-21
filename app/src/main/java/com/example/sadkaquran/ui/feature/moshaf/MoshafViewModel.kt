@@ -1,221 +1,109 @@
 package com.example.sadkaquran.ui.feature.moshaf
 
-import android.app.Application
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.support.v4.media.MediaBrowserCompat
-import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sadkaquran.exoplayer.MusicServiceConnection
-import com.example.sadkaquran.exoplayer.isPlaying
-import com.example.sadkaquran.exoplayer.isPrepared
+import com.example.sadkaquran.data.local.LastReadInfo
+import com.example.sadkaquran.data.local.SadkaPreferences
+import com.example.sadkaquran.data.models.Data
+import com.example.sadkaquran.data.models.Shikh
+import com.example.sadkaquran.playback.QuranPlayerManager
 import com.example.sadkaquran.repo.Repository
+import com.example.sadkaquran.util.Constants
 import com.example.sadkaquran.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import retrofit2.Response
-import timber.log.Timber
 import javax.inject.Inject
-import android.support.v4.media.MediaMetadataCompat.METADATA_KEY_MEDIA_ID
-import com.example.sadkaquran.data.models.*
-import com.example.sadkaquran.exoplayer.isPlayEnabled
-import com.example.sadkaquran.util.Constants.MEDIA_ROOT_ID
 
 @HiltViewModel
 class MoshafViewModel @Inject constructor(
-    private val myRepo: Repository,
-    private val musicServiceConnection: MusicServiceConnection,
-    application: Application
-) : AndroidViewModel(application) {
+    private val repository: Repository,
+    val playerManager: QuranPlayerManager,
+    val preferences: SadkaPreferences
+) : ViewModel() {
 
-    val playbackState = musicServiceConnection.playbackState
-    var mediaItems = mutableStateOf<Resource<List<Quran>>>(Resource.Loading)
+    private val _moshafList = MutableStateFlow<Resource<List<Data>>>(Resource.Loading)
+    val moshafList: StateFlow<Resource<List<Data>>> = _moshafList.asStateFlow()
 
-    var showPlayerFullScreen by mutableStateOf(false)
+    private val _shiks = MutableStateFlow<Resource<List<Shikh>>>(Resource.Loading)
+    val shiks: StateFlow<Resource<List<Shikh>>> = _shiks.asStateFlow()
 
-    val isConnected = musicServiceConnection.isConnected
-    val networkError = musicServiceConnection.networkFailure
-    val curPlayingSong = musicServiceConnection.nowPlaying
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    val currentPlayingSong = musicServiceConnection.currentPlayingSong
+    val selectedReciterId: StateFlow<String> = preferences.reciterIdFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_RECITER_ID)
 
-    val songIsPlaying: Boolean
-        get() = playbackState.value?.isPlaying == true
+    val selectedReciterName: StateFlow<String> = preferences.reciterNameFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_RECITER_NAME)
 
+    val lastRead: StateFlow<LastReadInfo> = preferences.lastReadFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LastReadInfo(1, "الفاتحة", 1))
 
+    val isPlaying: StateFlow<Boolean> = playerManager.isPlaying
+    val currentSurahNumber: StateFlow<Int?> = playerManager.currentSurahNumber
+    val isBuffering: StateFlow<Boolean> = playerManager.isBuffering
 
-
-    private val _moshafList: MutableStateFlow<Resource<List<Data>>> =
-        MutableStateFlow(Resource.Loading)
-    val moshafList: StateFlow<Resource<List<Data>>> = _moshafList
-
-
-    private val _shiks: MutableStateFlow<Resource<List<Shikh>>> = MutableStateFlow(Resource.Loading)
-    val shiks: StateFlow<Resource<List<Shikh>>> = _shiks
-
-    init {
-        getElmoshaf()
-        getShiks()
-//
-        mediaItems.value = (Resource.Loading)
-        musicServiceConnection.subscribe(
-            MEDIA_ROOT_ID,
-            object : MediaBrowserCompat.SubscriptionCallback() {
-                override fun onChildrenLoaded(
-                    parentId: String,
-                    children: MutableList<MediaBrowserCompat.MediaItem>
-                ) {
-                    super.onChildrenLoaded(parentId, children)
-                    val items = children.map {
-                        Quran(
-                            it.mediaId!!,
-                            it.description.title.toString(),
-                            it.description.subtitle.toString(),
-                            it.description.mediaUri.toString(),
-                            it.description.iconUri.toString()
-                        )
-                    }
-                    mediaItems.value = Resource.Success(items)
-                }
-            })
-
-    }
-
-    private fun getElmoshaf() {
-        Log.d("view model", "getElmoshaf called")
-
-        viewModelScope.launch {
-            _moshafList.value = Resource.Loading
-            if (isThereConnection()) {
-
-                _moshafList.value = handleListResponse(myRepo.getElmoshaf())
-
-
-                Timber.tag("view model").d("err")
-
+    // Filtered surah list based on search query
+    val filteredMoshafList: StateFlow<List<Data>> = combine(_moshafList, _searchQuery) { res, query ->
+        if (res is Resource.Success) {
+            val list = res.data
+            if (query.isBlank()) {
+                list
             } else {
-                _moshafList.value = Resource.Error("No Internet Connection")
-
-            }
-
-        }
-    }
-
-    private fun handleListResponse(response: Response<Elmoshaf>): Resource<List<Data>> {
-
-        return when {
-            response.message().toString().contains("timeout") -> {
-                Resource.Error(error = "Connection Timeout")
-            }
-            response.code() == 402 -> {
-                Resource.Error("API Key Limited.")
-            }
-            response.isSuccessful -> {
-                val moshaf = response.body()!!.data
-                Log.d("view model", "${moshaf}")
-
-
-                Resource.Success(moshaf)
-            }
-            else -> {
-                Resource.Error(response.message())
-            }
-        }
-
-    }
-
-    private fun handleShiksResponse(response: Response<Shiks>): Resource<List<Shikh>> {
-
-        return when {
-            response.message().toString().contains("timeout") -> {
-                Resource.Error(error = "Connection Timeout")
-            }
-            response.code() == 402 -> {
-                Resource.Error("API Key Limited.")
-            }
-            response.isSuccessful -> {
-                val moshaf = response.body()!!.data
-                Log.d("view model", "${moshaf}")
-
-
-                Resource.Success(moshaf)
-            }
-            else -> {
-                Resource.Error(response.message())
-            }
-        }
-
-    }
-
-
-    fun getShiks() {
-        viewModelScope.launch {
-            if (isThereConnection()) {
-                Timber.tag("view model").d("err")
-
-//                Log.d("view model ", "${list.shikhList.joinToString("\n")}")
-                _shiks.value = handleShiksResponse(myRepo.getAllShikh())
-
-                Timber.tag("view model").d("err")
-
-            }
-            else
-            {
-                _shiks.value = Resource.Error("No Internet Connection")
-
-            }
-
-        }
-    }
-
-//    fun playOrToggleSong(mediaItem: Song, toggle: Boolean = false) {
-    fun playOrToggleSong(mediaItem: Quran, toggle: Boolean = false) {
-        val isPrepared = playbackState.value?.isPrepared ?: false
-        if (isPrepared && mediaItem.mediaId ==
-            currentPlayingSong.value?.getString(METADATA_KEY_MEDIA_ID)
-//            curPlayingSong.value?.getString(METADATA_KEY_MEDIA_ID)
-        ) {
-            playbackState.value?.let { playbackState ->
-                when {
-                    playbackState.isPlaying -> {
-                        if (toggle) musicServiceConnection.transportController.pause()
-                    }
-                    playbackState.isPlayEnabled -> {
-                        musicServiceConnection.transportController.play()
-                    }
-                    else -> Unit
+                val q = query.trim().lowercase()
+                list.filter { surah ->
+                    surah.name.contains(q) ||
+                    surah.englishName.lowercase().contains(q) ||
+                    surah.englishNameTranslation.lowercase().contains(q) ||
+                    surah.number.toString() == q
                 }
             }
         } else {
-            musicServiceConnection.transportController.playFromMediaId(mediaItem.mediaId, null)
+            emptyList()
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        loadData()
+    }
+
+    fun loadData() {
+        viewModelScope.launch {
+            _moshafList.value = Resource.Loading
+            _moshafList.value = repository.getMoshafList()
+        }
+        viewModelScope.launch {
+            _shiks.value = Resource.Loading
+            _shiks.value = repository.getAllShikh()
         }
     }
 
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
+    }
 
-   private fun isThereConnection(): Boolean {
-        val connectivityManager = getApplication<Application>().getSystemService(
-            Context.CONNECTIVITY_SERVICE
-        ) as ConnectivityManager
-        val activeNetwork = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork) ?: return false
-        return when {
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-            else -> false
+    fun onSelectReciter(shikh: Shikh) {
+        viewModelScope.launch {
+            preferences.saveReciter(shikh.identifier, shikh.name)
         }
     }
-    override fun onCleared() {
-        super.onCleared()
-        musicServiceConnection.unsubscribe(
-            MEDIA_ROOT_ID,
-            object : MediaBrowserCompat.SubscriptionCallback() {})
+
+    fun playOrToggleSurah(surah: Data) {
+        val currentSurah = currentSurahNumber.value
+        val isSurahPlaying = isPlaying.value
+
+        if (currentSurah == surah.number) {
+            playerManager.togglePlayPause()
+        } else {
+            val reciterId = selectedReciterId.value
+            val reciterName = selectedReciterName.value
+            playerManager.playSurah(
+                surahNumber = surah.number,
+                surahName = surah.name,
+                reciterId = reciterId,
+                reciterName = reciterName
+            )
+        }
     }
 }

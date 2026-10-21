@@ -1,17 +1,12 @@
 package com.example.sadkaquran.util
 
 object Constants {
-    const val BASE_URL = "http://api.alquran.cloud/v1/"
+    const val BASE_URL = "https://api.alquran.cloud/v1/"
 
-    const val SONG_COLLECTION = "songs"
-    const val SERVICE_TAG = "MusicService"
+    const val NOTIFICATION_ID = 1001
+    const val NOTIFICATION_CHANNEL_ID = "sadka_quran_playback_channel"
 
-    const val MEDIA_ROOT_ID = "root_id"
-
-    const val NETWORK_FAILURE = "NETWORK_FAILURE"
-
-    const val UPDATE_PLAYER_POSITION_INTERVAL = 100L
-
-    const val NOTIFICATION_ID = 1
-    const val NOTIFICATION_CHANNEL_ID = "music"
+    const val DEFAULT_RECITER_ID = "ar.alafasy"
+    const val DEFAULT_RECITER_NAME = "Mishari Rashid al-`Afasy"
+    const val DEFAULT_FONT_SIZE = 26f
 }
