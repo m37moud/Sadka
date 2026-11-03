@@ -59,11 +59,11 @@ fun FontSizeDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+                            text = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
                             fontSize = sizeSlider.sp,
-                            lineHeight = (sizeSlider * 1.6f).sp,
+                            lineHeight = (sizeSlider * 2.0f).sp,
                             textAlign = TextAlign.Center,
-                            fontFamily = QuranTypography.ayahText.fontFamily,
+                            style = QuranTypography.basmalah,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }

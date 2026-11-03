@@ -2,10 +2,14 @@ package com.example.sadkaquran.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.sp
+import com.example.sadkaquran.R
 
 // =========================================================================
 // Material 3 Typography Scale for Sadka Quran App
@@ -121,31 +125,39 @@ val Typography = Typography(
 )
 
 // --- Specialized Islamic / Quranic Typography Styles ---
+// Authentic Quranic Naskh Typography using Amiri Quran font.
 // Arabic text with diacritics (harakat/tashkeel) requires higher line-height
 // to prevent clipping and ensure comfortable recitation readability.
+val AmiriQuranFont = FontFamily(
+    Font(R.font.amiri_quran, FontWeight.Normal),
+    Font(R.font.amiri_quran, FontWeight.Bold)
+)
+
 object QuranTypography {
     val surahTitle = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AmiriQuranFont,
         fontWeight = FontWeight.Bold,
-        fontSize = 26.sp,
-        lineHeight = 38.sp,
+        fontSize = 28.sp,
+        lineHeight = 46.sp,
         textAlign = TextAlign.Center
     )
 
     val basmalah = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 44.sp,
+        fontFamily = AmiriQuranFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        lineHeight = 52.sp,
         textAlign = TextAlign.Center
     )
 
     val ayahText = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AmiriQuranFont,
         fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 46.sp,
-        textAlign = TextAlign.Right
+        fontSize = 24.sp,
+        lineHeight = 52.sp,
+        textAlign = TextAlign.Start,
+        textDirection = TextDirection.Rtl,
+        lineBreak = LineBreak.Paragraph
     )
 
     val ayahNumber = TextStyle(

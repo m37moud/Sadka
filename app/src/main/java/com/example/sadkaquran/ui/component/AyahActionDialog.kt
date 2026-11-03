@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.sadkaquran.data.models.AyahX
+import com.example.sadkaquran.util.QuranTextFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,10 +94,13 @@ fun AyahActionBottomSheet(
                 subtitle = "نسخ نص الآية مع الإسناد للحافظة",
                 onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText(
-                        "Quran Ayah",
-                        "﴿ ${ayah.text} ﴾\n[$surahName: ${ayah.numberInSurah}]"
+                    val formattedShareText = QuranTextFormatter.formatAyahForShare(
+                        surahNumber = surahNumber,
+                        ayahNumberInSurah = ayah.numberInSurah,
+                        surahName = surahName,
+                        rawText = ayah.text
                     )
+                    val clip = ClipData.newPlainText("Quran Ayah", formattedShareText)
                     clipboard.setPrimaryClip(clip)
                     Toast.makeText(context, "تم نسخ الآية للحافظة", Toast.LENGTH_SHORT).show()
                     onDismiss()
@@ -114,12 +118,15 @@ fun AyahActionBottomSheet(
                 title = "مشاركة الآية (Share)",
                 subtitle = "مشاركة نص الآية عبر التطبيقات",
                 onClick = {
+                    val shareText = QuranTextFormatter.formatAyahForShare(
+                        surahNumber = surahNumber,
+                        ayahNumberInSurah = ayah.numberInSurah,
+                        surahName = surahName,
+                        rawText = ayah.text
+                    ) + "\n- تطبيق صدقة جارية"
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
-                        putExtra(
-                            Intent.EXTRA_TEXT,
-                            "﴿ ${ayah.text} ﴾\n[$surahName - آية ${ayah.numberInSurah}]\n- تطبيق صدقة جارية"
-                        )
+                        putExtra(Intent.EXTRA_TEXT, shareText)
                     }
                     context.startActivity(Intent.createChooser(shareIntent, "مشاركة الآية الكريمة"))
                     onDismiss()

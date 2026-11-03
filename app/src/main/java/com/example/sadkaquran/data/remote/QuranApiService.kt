@@ -10,12 +10,10 @@ interface QuranApiService {
     @GET("surah")
     suspend fun getElmoshaf(): Response<Elmoshaf>
 
-    @GET("surah/{number}")
+    @GET("surah/{number}/quran-uthmani")
     suspend fun getSurah(@Path("number") number: Int): Response<Surah>
-
 
     @GET("edition/format/audio")
     suspend fun getAllShikh(): Response<Shiks>
-
 
 }

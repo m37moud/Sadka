@@ -21,8 +21,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,6 +38,7 @@ import com.example.sadkaquran.ui.component.LoadingScreen
 import com.example.sadkaquran.ui.theme.IslamicTheme
 import com.example.sadkaquran.ui.theme.QuranTypography
 import com.example.sadkaquran.ui.theme.Shapes
+import com.example.sadkaquran.util.QuranTextFormatter
 import com.example.sadkaquran.util.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -221,6 +224,7 @@ fun SurahRead(
                 modifier = Modifier
                     .fillMaxWidth()
                     .animateContentSize(),
+                surahNumber = surah.number,
                 ayah = ayah,
                 fontSize = fontSize,
                 isBookmarked = isBookmarked,
@@ -286,7 +290,7 @@ fun BasmalahHeader() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+            text = QuranTextFormatter.STANDARD_BASMALAH,
             style = QuranTypography.basmalah,
             color = MaterialTheme.colorScheme.primary
         )
@@ -296,11 +300,23 @@ fun BasmalahHeader() {
 @Composable
 fun ItemAyah(
     modifier: Modifier = Modifier,
+    surahNumber: Int,
     ayah: AyahX,
     fontSize: Float,
     isBookmarked: Boolean,
     onClick: () -> Unit
 ) {
+    val formattedAyahText = remember(surahNumber, ayah.numberInSurah, ayah.text) {
+        QuranTextFormatter.formatAyahDisplay(
+            surahNumber = surahNumber,
+            ayahNumberInSurah = ayah.numberInSurah,
+            rawText = ayah.text
+        )
+    }
+    val arabicAyahNumber = remember(ayah.numberInSurah) {
+        QuranTextFormatter.toArabicIndicDigits(ayah.numberInSurah)
+    }
+
     Card(
         modifier = modifier.clickable { onClick() },
         shape = Shapes.medium,
@@ -378,16 +394,17 @@ fun ItemAyah(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Arabic Ayah Text with dynamic size and comfortable line height
-            Text(
-                text = ayah.text,
-                fontSize = fontSize.sp,
-                lineHeight = (fontSize * 1.6f).sp,
-                fontFamily = QuranTypography.ayahText.fontFamily,
-                textAlign = TextAlign.Right,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Arabic Ayah Text with authentic Amiri Quran font, RTL direction, generous line height, and end-of-verse marker
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Text(
+                    text = "$formattedAyahText ﴿$arabicAyahNumber﴾",
+                    fontSize = fontSize.sp,
+                    lineHeight = (fontSize * 2.1f).sp,
+                    style = QuranTypography.ayahText,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
