@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.sadkaquran.ui.feature.moshaf.MoshafScreen
+import com.example.sadkaquran.ui.feature.prayer.PrayerTimesScreen
 import com.example.sadkaquran.ui.feature.splash.SplashScreen
 import com.example.sadkaquran.ui.feature.surah.SurahScreen
 
@@ -44,6 +45,18 @@ fun NavGraph(navController: NavHostController) {
             }
         ) {
             MoshafScreen(navController = navController)
+        }
+
+        composable(
+            route = Screens.PrayerTimes.route,
+            enterTransition = {
+                fadeIn(animationSpec = tween(400))
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(400))
+            }
+        ) {
+            PrayerTimesScreen()
         }
 
         composable(

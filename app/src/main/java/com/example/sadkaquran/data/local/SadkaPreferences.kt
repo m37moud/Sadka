@@ -27,6 +27,28 @@ data class BookmarkItem(
     val surahName: String
 )
 
+data class PrayerLocationSettings(
+    val useGps: Boolean = true,
+    val city: String = Constants.DEFAULT_CITY,
+    val country: String = Constants.DEFAULT_COUNTRY,
+    val latitude: Double = Constants.DEFAULT_LATITUDE,
+    val longitude: Double = Constants.DEFAULT_LONGITUDE
+)
+
+data class PrayerCalculationSettings(
+    val method: Int = Constants.DEFAULT_CALCULATION_METHOD,
+    val school: Int = Constants.DEFAULT_ASR_SCHOOL
+)
+
+data class PrayerNotificationSettings(
+    val fajrEnabled: Boolean = true,
+    val sunriseEnabled: Boolean = false,
+    val dhuhrEnabled: Boolean = true,
+    val asrEnabled: Boolean = true,
+    val maghribEnabled: Boolean = true,
+    val ishaEnabled: Boolean = true
+)
+
 @Singleton
 class SadkaPreferences @Inject constructor(
     @ApplicationContext private val context: Context
@@ -39,6 +61,23 @@ class SadkaPreferences @Inject constructor(
         val LAST_READ_SURAH_NAME = stringPreferencesKey("last_read_surah_name")
         val LAST_READ_AYAH_NUM = intPreferencesKey("last_read_ayah_num")
         val BOOKMARKS = stringSetPreferencesKey("bookmarks_set")
+
+        // Prayer keys
+        val PRAYER_USE_GPS = booleanPreferencesKey("prayer_use_gps")
+        val PRAYER_CITY = stringPreferencesKey("prayer_city")
+        val PRAYER_COUNTRY = stringPreferencesKey("prayer_country")
+        val PRAYER_LATITUDE = doublePreferencesKey("prayer_latitude")
+        val PRAYER_LONGITUDE = doublePreferencesKey("prayer_longitude")
+        val PRAYER_METHOD = intPreferencesKey("prayer_method")
+        val PRAYER_SCHOOL = intPreferencesKey("prayer_school")
+
+        // Notification keys
+        val NOTIF_FAJR = booleanPreferencesKey("notif_fajr")
+        val NOTIF_SUNRISE = booleanPreferencesKey("notif_sunrise")
+        val NOTIF_DHUHR = booleanPreferencesKey("notif_dhuhr")
+        val NOTIF_ASR = booleanPreferencesKey("notif_asr")
+        val NOTIF_MAGHRIB = booleanPreferencesKey("notif_maghrib")
+        val NOTIF_ISHA = booleanPreferencesKey("notif_isha")
     }
 
     val reciterIdFlow: Flow<String> = context.dataStore.data
@@ -139,5 +178,75 @@ class SadkaPreferences @Inject constructor(
             result = set.any { it.startsWith("$surahNumber:$ayahNumber:") }
         }
         return result
+    }
+
+    val prayerLocationFlow: Flow<PrayerLocationSettings> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            PrayerLocationSettings(
+                useGps = preferences[Keys.PRAYER_USE_GPS] ?: true,
+                city = preferences[Keys.PRAYER_CITY] ?: Constants.DEFAULT_CITY,
+                country = preferences[Keys.PRAYER_COUNTRY] ?: Constants.DEFAULT_COUNTRY,
+                latitude = preferences[Keys.PRAYER_LATITUDE] ?: Constants.DEFAULT_LATITUDE,
+                longitude = preferences[Keys.PRAYER_LONGITUDE] ?: Constants.DEFAULT_LONGITUDE
+            )
+        }
+
+    val prayerCalculationFlow: Flow<PrayerCalculationSettings> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            PrayerCalculationSettings(
+                method = preferences[Keys.PRAYER_METHOD] ?: Constants.DEFAULT_CALCULATION_METHOD,
+                school = preferences[Keys.PRAYER_SCHOOL] ?: Constants.DEFAULT_ASR_SCHOOL
+            )
+        }
+
+    val prayerNotificationFlow: Flow<PrayerNotificationSettings> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            PrayerNotificationSettings(
+                fajrEnabled = preferences[Keys.NOTIF_FAJR] ?: true,
+                sunriseEnabled = preferences[Keys.NOTIF_SUNRISE] ?: false,
+                dhuhrEnabled = preferences[Keys.NOTIF_DHUHR] ?: true,
+                asrEnabled = preferences[Keys.NOTIF_ASR] ?: true,
+                maghribEnabled = preferences[Keys.NOTIF_MAGHRIB] ?: true,
+                ishaEnabled = preferences[Keys.NOTIF_ISHA] ?: true
+            )
+        }
+
+    suspend fun savePrayerLocation(useGps: Boolean, city: String, country: String, lat: Double, lng: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[Keys.PRAYER_USE_GPS] = useGps
+            preferences[Keys.PRAYER_CITY] = city
+            preferences[Keys.PRAYER_COUNTRY] = country
+            preferences[Keys.PRAYER_LATITUDE] = lat
+            preferences[Keys.PRAYER_LONGITUDE] = lng
+        }
+    }
+
+    suspend fun savePrayerCalculation(method: Int, school: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[Keys.PRAYER_METHOD] = method
+            preferences[Keys.PRAYER_SCHOOL] = school
+        }
+    }
+
+    suspend fun togglePrayerNotification(prayerName: String) {
+        context.dataStore.edit { preferences ->
+            when (prayerName.lowercase()) {
+                "fajr" -> preferences[Keys.NOTIF_FAJR] = !(preferences[Keys.NOTIF_FAJR] ?: true)
+                "sunrise" -> preferences[Keys.NOTIF_SUNRISE] = !(preferences[Keys.NOTIF_SUNRISE] ?: false)
+                "dhuhr" -> preferences[Keys.NOTIF_DHUHR] = !(preferences[Keys.NOTIF_DHUHR] ?: true)
+                "asr" -> preferences[Keys.NOTIF_ASR] = !(preferences[Keys.NOTIF_ASR] ?: true)
+                "maghrib" -> preferences[Keys.NOTIF_MAGHRIB] = !(preferences[Keys.NOTIF_MAGHRIB] ?: true)
+                "isha" -> preferences[Keys.NOTIF_ISHA] = !(preferences[Keys.NOTIF_ISHA] ?: true)
+            }
+        }
     }
 }
