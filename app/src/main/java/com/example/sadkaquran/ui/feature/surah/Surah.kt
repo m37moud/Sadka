@@ -86,6 +86,7 @@ fun SurahScreen(
     val arabicFontSize by viewModel.arabicFontSize.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
     val currentPlayingSurah by viewModel.currentSurahNumber.collectAsState()
+    val currentPlayingAyah by viewModel.currentAyahNumber.collectAsState()
     val bookmarks by viewModel.bookmarks.collectAsState()
 
     var showFontSizeDialog by remember { mutableStateOf(false) }
@@ -175,6 +176,8 @@ fun SurahScreen(
                         surah = state.data,
                         fontSize = arabicFontSize,
                         bookmarks = bookmarks.map { "${it.surahNumber}:${it.ayahNumber}" }.toSet(),
+                        currentPlayingAyah = if (currentPlayingSurah == shrahNumber) currentPlayingAyah else null,
+                        isPlaying = isPlaying,
                         onAyahClick = { ayah ->
                             selectedAyahForAction = ayah
                             viewModel.saveLastReadAyah(ayah.numberInSurah)
@@ -224,9 +227,22 @@ fun SurahRead(
     surah: DataX,
     fontSize: Float,
     bookmarks: Set<String>,
+    currentPlayingAyah: Int? = null,
+    isPlaying: Boolean = false,
     onAyahClick: (AyahX) -> Unit
 ) {
     val listState = rememberLazyListState()
+
+    // Smoothly scroll to active Ayah during continuous recitation
+    LaunchedEffect(currentPlayingAyah, isPlaying) {
+        if (currentPlayingAyah != null && isPlaying) {
+            val targetIndex = surah.ayahs.indexOfFirst { it.numberInSurah == currentPlayingAyah }
+            if (targetIndex >= 0) {
+                val headerOffset = if (surah.number != 9 && surah.number != 1) 2 else 1
+                listState.animateScrollToItem((targetIndex + headerOffset).coerceAtLeast(0))
+            }
+        }
+    }
 
     LazyColumn(
         state = listState,
@@ -252,6 +268,7 @@ fun SurahRead(
             key = { it.number }
         ) { ayah ->
             val isBookmarked = bookmarks.contains("${surah.number}:${ayah.numberInSurah}")
+            val isCurrentlyPlaying = (currentPlayingAyah == ayah.numberInSurah && isPlaying)
             ItemAyah(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -260,6 +277,7 @@ fun SurahRead(
                 ayah = ayah,
                 fontSize = fontSize,
                 isBookmarked = isBookmarked,
+                isCurrentlyPlaying = isCurrentlyPlaying,
                 onClick = { onAyahClick(ayah) }
             )
         }
@@ -336,6 +354,7 @@ fun ItemAyah(
     ayah: AyahX,
     fontSize: Float,
     isBookmarked: Boolean,
+    isCurrentlyPlaying: Boolean = false,
     onClick: () -> Unit
 ) {
     val formattedAyahText = remember(surahNumber, ayah.numberInSurah, ayah.text) {
@@ -349,18 +368,26 @@ fun ItemAyah(
         QuranTextFormatter.toArabicIndicDigits(ayah.numberInSurah)
     }
 
+    val containerColor = when {
+        isCurrentlyPlaying -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
+    val borderColor = when {
+        isCurrentlyPlaying -> IslamicTheme.colors.goldOrnament
+        isBookmarked -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    }
+
     Card(
         modifier = modifier.clickable { onClick() },
         shape = Shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = containerColor
         ),
         border = BorderStroke(
-            width = if (isBookmarked) 1.5.dp else 1.dp,
-            color = if (isBookmarked)
-                MaterialTheme.colorScheme.primary
-            else
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            width = if (isCurrentlyPlaying || isBookmarked) 1.5.dp else 1.dp,
+            color = borderColor
         )
     ) {
         Column(

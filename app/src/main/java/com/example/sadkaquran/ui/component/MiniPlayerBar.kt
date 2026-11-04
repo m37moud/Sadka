@@ -54,6 +54,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import com.example.sadkaquran.R
 import com.example.sadkaquran.playback.QuranPlayerManager
 import java.util.Locale
 
@@ -69,6 +73,7 @@ fun UnifiedMiniPlayer(
     val isBuffering by playerManager.isBuffering.collectAsState()
     val currentPositionMs by playerManager.currentPositionMs.collectAsState()
     val durationMs by playerManager.durationMs.collectAsState()
+    val playbackError by playerManager.playbackError.collectAsState()
     val currentMediaId by playerManager.currentMediaId.collectAsState()
 
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -192,6 +197,34 @@ fun UnifiedMiniPlayer(
                             )
                         }
                     }
+
+                    if (playbackError != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = playbackError ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            TextButton(
+                                onClick = { playerManager.retryPlayback() },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.retry),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -222,6 +255,7 @@ fun FullPlayerSheetContent(
     val isBuffering by playerManager.isBuffering.collectAsState()
     val currentPositionMs by playerManager.currentPositionMs.collectAsState()
     val durationMs by playerManager.durationMs.collectAsState()
+    val playbackError by playerManager.playbackError.collectAsState()
 
     var sliderPosition by remember { mutableFloatStateOf(0f) }
     var isUserDraggingSlider by remember { mutableStateOf(false) }
@@ -360,6 +394,36 @@ fun FullPlayerSheetContent(
                     modifier = Modifier.size(32.dp),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
+            }
+        }
+
+        if (playbackError != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MaterialTheme.colorScheme.errorContainer,
+                        RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = playbackError ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(
+                    onClick = { playerManager.retryPlayback() }
+                ) {
+                    Text(
+                        text = stringResource(R.string.retry),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 

@@ -4,19 +4,22 @@ import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.example.sadkaquran.R
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,15 +28,29 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.net.toUri
 
 @Singleton
 class QuranPlayerManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    companion object {
+        private const val TAG = "QuranPlayerManager"
+        private const val PROGRESS_POLL_INTERVAL_MS = 500L
+        private const val SEEK_OFFSET_MS = 10000L
+    }
+
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
+    private var pendingPlaybackAction: (() -> Unit)? = null
+
+    // Track active requests to enable automatic retry and continuous playback
+    private var currentSurahRequest: SurahPlaybackRequest? = null
+    private var currentAyahRequest: AyahPlaybackRequest? = null
+    private var isPlayingSurah: Boolean = false
+    private var hasAttemptedMirrorRetry: Boolean = false
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
@@ -62,6 +79,9 @@ class QuranPlayerManager @Inject constructor(
     private val _durationMs = MutableStateFlow(0L)
     val durationMs: StateFlow<Long> = _durationMs.asStateFlow()
 
+    private val _playbackError = MutableStateFlow<String?>(null)
+    val playbackError: StateFlow<String?> = _playbackError.asStateFlow()
+
     private var progressJob: Job? = null
 
     init {
@@ -79,10 +99,17 @@ class QuranPlayerManager @Inject constructor(
                 controller = controllerFuture?.get()
                 setupPlayerListener()
                 updateStateFromPlayer()
+
+                // Execute any playback action that was queued before the controller became ready
+                pendingPlaybackAction?.let { action ->
+                    pendingPlaybackAction = null
+                    action.invoke()
+                }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Failed to connect to MediaController", e)
+                _playbackError.value = context.getString(R.string.playback_error_general)
             }
-        }, MoreExecutors.directExecutor())
+        }, ContextCompat.getMainExecutor(context))
     }
 
     private fun setupPlayerListener() {
@@ -98,12 +125,19 @@ class QuranPlayerManager @Inject constructor(
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 _isBuffering.value = (playbackState == Player.STATE_BUFFERING)
-                if (playbackState == Player.STATE_READY) {
-                    _durationMs.value = controller?.duration?.coerceAtLeast(0L) ?: 0L
-                } else if (playbackState == Player.STATE_ENDED) {
-                    _currentPositionMs.value = 0L
-                    _isPlaying.value = false
-                    stopProgressTracker()
+                when (playbackState) {
+                    Player.STATE_READY -> {
+                        val duration = controller?.duration ?: 0L
+                        if (duration > 0L) {
+                            _durationMs.value = duration
+                        }
+                    }
+
+                    Player.STATE_ENDED -> {
+                        handlePlaybackEnded()
+                    }
+
+                    else -> Unit
                 }
             }
 
@@ -112,11 +146,54 @@ class QuranPlayerManager @Inject constructor(
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                _isBuffering.value = false
-                _isPlaying.value = false
-                stopProgressTracker()
+                Log.w(TAG, "Playback error occurred: ${error.errorCodeName}", error)
+                if (!hasAttemptedMirrorRetry) {
+                    hasAttemptedMirrorRetry = true
+                    Log.i(TAG, "Retrying playback with fallback CDN mirror...")
+                    retryWithMirror()
+                } else {
+                    _isBuffering.value = false
+                    _isPlaying.value = false
+                    stopProgressTracker()
+
+                    val isNetworkError =
+                        error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+                                error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
+                                error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
+                    _playbackError.value = if (isNetworkError) {
+                        context.getString(R.string.playback_error_network)
+                    } else {
+                        context.getString(R.string.playback_error_general)
+                    }
+                }
             }
         })
+    }
+
+    private fun handlePlaybackEnded() {
+        val ayahReq = currentAyahRequest
+        if (!isPlayingSurah && ayahReq != null && ayahReq.ayahNumberInSurah < ayahReq.totalAyahsInSurah) {
+            // Auto-advance to the next Ayah in the Surah
+            val nextAyahInSurah = ayahReq.ayahNumberInSurah + 1
+            val nextAyahInQuran = ayahReq.ayahNumberInQuran + 1
+            val nextRequest = ayahReq.copy(
+                ayahNumberInSurah = nextAyahInSurah,
+                ayahNumberInQuran = nextAyahInQuran
+            )
+            playAyah(nextRequest)
+        } else {
+            _currentPositionMs.value = 0L
+            _isPlaying.value = false
+            stopProgressTracker()
+        }
+    }
+
+    private fun retryWithMirror() {
+        if (isPlayingSurah) {
+            currentSurahRequest?.let { playSurahInternal(it, useMirror = true) }
+        } else {
+            currentAyahRequest?.let { playAyahInternal(it, useMirror = true) }
+        }
     }
 
     private fun updateMetadata(mediaItem: MediaItem?) {
@@ -158,8 +235,9 @@ class QuranPlayerManager @Inject constructor(
     private fun updateStateFromPlayer() {
         val player = controller ?: return
         _isPlaying.value = player.isPlaying
-        _isBuffering.value = player.playbackState == Player.STATE_BUFFERING
-        _durationMs.value = player.duration.coerceAtLeast(0L)
+        _isBuffering.value = (player.playbackState == Player.STATE_BUFFERING)
+        val dur = player.duration
+        _durationMs.value = if (dur > 0L) dur else 0L
         _currentPositionMs.value = player.currentPosition.coerceAtLeast(0L)
         updateMetadata(player.currentMediaItem)
         if (player.isPlaying) {
@@ -174,11 +252,11 @@ class QuranPlayerManager @Inject constructor(
                 controller?.let { player ->
                     _currentPositionMs.value = player.currentPosition.coerceAtLeast(0L)
                     val dur = player.duration
-                    if (dur > 0L) {
+                    if (dur > 0L && _durationMs.value != dur) {
                         _durationMs.value = dur
                     }
                 }
-                delay(300L)
+                delay(PROGRESS_POLL_INTERVAL_MS)
             }
         }
     }
@@ -188,28 +266,64 @@ class QuranPlayerManager @Inject constructor(
         progressJob = null
     }
 
+    fun playSurah(request: SurahPlaybackRequest) {
+        val player = controller
+        if (player == null) {
+            pendingPlaybackAction = { playSurah(request) }
+            return
+        }
+        currentSurahRequest = request
+        currentAyahRequest = null
+        isPlayingSurah = true
+        hasAttemptedMirrorRetry = false
+        _playbackError.value = null
+
+        playSurahInternal(request, useMirror = false)
+    }
+
     fun playSurah(
         surahNumber: Int,
         surahName: String,
         reciterId: String,
         reciterName: String
     ) {
+        playSurah(
+            SurahPlaybackRequest(
+                surahNumber = surahNumber,
+                surahName = surahName,
+                reciterId = reciterId,
+                reciterName = reciterName
+            )
+        )
+    }
+
+    private fun playSurahInternal(request: SurahPlaybackRequest, useMirror: Boolean) {
         val player = controller ?: return
-        val url = "https://cdn.islamic.network/quran/audio-surah/128/$reciterId/$surahNumber.mp3"
+        val resolved =
+            QuranAudioResolver.resolveSurahReciter(request.reciterId, request.reciterName)
+        val url = QuranAudioResolver.buildSurahAudioUrl(
+            surahNumber = request.surahNumber,
+            reciterId = resolved.reciterId,
+            useMirror = useMirror
+        )
+
         val extras = Bundle().apply {
-            putInt("surah_number", surahNumber)
-            putString("reciter_id", reciterId)
+            putInt("surah_number", request.surahNumber)
+            putString("reciter_id", resolved.reciterId)
         }
 
+        val artworkUri =
+            "android.resource://${context.packageName}/${R.drawable.ic_quran_logo}".toUri()
         val metadata = MediaMetadata.Builder()
-            .setTitle(surahName)
-            .setArtist(reciterName)
-            .setDisplayTitle(surahName)
+            .setTitle(request.surahName)
+            .setArtist(resolved.reciterName)
+            .setDisplayTitle(request.surahName)
+            .setArtworkUri(artworkUri)
             .setExtras(extras)
             .build()
 
         val mediaItem = MediaItem.Builder()
-            .setMediaId("surah_$surahNumber")
+            .setMediaId("surah_${request.surahNumber}")
             .setUri(Uri.parse(url))
             .setMediaMetadata(metadata)
             .build()
@@ -219,33 +333,76 @@ class QuranPlayerManager @Inject constructor(
         player.play()
     }
 
+    fun playAyah(request: AyahPlaybackRequest) {
+        val player = controller
+        if (player == null) {
+            pendingPlaybackAction = { playAyah(request) }
+            return
+        }
+        currentAyahRequest = request
+        currentSurahRequest = null
+        isPlayingSurah = false
+        hasAttemptedMirrorRetry = false
+        _playbackError.value = null
+
+        playAyahInternal(request, useMirror = false)
+    }
+
     fun playAyah(
         surahNumber: Int,
         ayahNumberInSurah: Int,
         ayahNumberInQuran: Int,
+        totalAyahsInSurah: Int = 0,
         surahName: String,
         reciterId: String,
         reciterName: String
     ) {
+        playAyah(
+            AyahPlaybackRequest(
+                surahNumber = surahNumber,
+                ayahNumberInSurah = ayahNumberInSurah,
+                ayahNumberInQuran = ayahNumberInQuran,
+                totalAyahsInSurah = totalAyahsInSurah,
+                surahName = surahName,
+                reciterId = reciterId,
+                reciterName = reciterName
+            )
+        )
+    }
+
+    private fun playAyahInternal(request: AyahPlaybackRequest, useMirror: Boolean) {
         val player = controller ?: return
-        val url = "https://cdn.islamic.network/quran/audio/128/$reciterId/$ayahNumberInQuran.mp3"
-        val title = "$surahName - آية $ayahNumberInSurah"
+        val resolved = QuranAudioResolver.resolveAyahReciter(request.reciterId, request.reciterName)
+        val url = QuranAudioResolver.buildAyahAudioUrl(
+            ayahNumberInQuran = request.ayahNumberInQuran,
+            reciterId = resolved.reciterId,
+            useMirror = useMirror
+        )
+
+        val title = context.getString(
+            R.string.ayah_title_format,
+            request.surahName,
+            request.ayahNumberInSurah
+        )
 
         val extras = Bundle().apply {
-            putInt("surah_number", surahNumber)
-            putInt("ayah_number", ayahNumberInSurah)
-            putString("reciter_id", reciterId)
+            putInt("surah_number", request.surahNumber)
+            putInt("ayah_number", request.ayahNumberInSurah)
+            putString("reciter_id", resolved.reciterId)
         }
 
+        val artworkUri =
+            Uri.parse("android.resource://${context.packageName}/${R.drawable.ic_quran_logo}")
         val metadata = MediaMetadata.Builder()
             .setTitle(title)
-            .setArtist(reciterName)
+            .setArtist(resolved.reciterName)
             .setDisplayTitle(title)
+            .setArtworkUri(artworkUri)
             .setExtras(extras)
             .build()
 
         val mediaItem = MediaItem.Builder()
-            .setMediaId("ayah_${surahNumber}_$ayahNumberInSurah")
+            .setMediaId("ayah_${request.surahNumber}_${request.ayahNumberInSurah}")
             .setUri(Uri.parse(url))
             .setMediaMetadata(metadata)
             .build()
@@ -277,15 +434,17 @@ class QuranPlayerManager @Inject constructor(
         _currentPositionMs.value = positionMs
     }
 
-    fun seekForward(offsetMs: Long = 10000L) {
+    fun seekForward(offsetMs: Long = SEEK_OFFSET_MS) {
         controller?.let { player ->
-            val target = (player.currentPosition + offsetMs).coerceAtMost(player.duration)
+            val rawDuration = player.duration
+            val maxValid = if (rawDuration > 0L) rawDuration else Long.MAX_VALUE
+            val target = (player.currentPosition + offsetMs).coerceIn(0L, maxValid)
             player.seekTo(target)
             _currentPositionMs.value = target
         }
     }
 
-    fun seekBackward(offsetMs: Long = 10000L) {
+    fun seekBackward(offsetMs: Long = SEEK_OFFSET_MS) {
         controller?.let { player ->
             val target = (player.currentPosition - offsetMs).coerceAtLeast(0L)
             player.seekTo(target)
@@ -305,6 +464,33 @@ class QuranPlayerManager @Inject constructor(
         _currentAyahNumber.value = null
         _currentPositionMs.value = 0L
         _durationMs.value = 0L
+        _playbackError.value = null
+        currentSurahRequest = null
+        currentAyahRequest = null
         stopProgressTracker()
+    }
+
+    fun clearPlaybackError() {
+        _playbackError.value = null
+    }
+
+    fun retryPlayback() {
+        _playbackError.value = null
+        hasAttemptedMirrorRetry = false
+        if (isPlayingSurah) {
+            currentSurahRequest?.let { playSurah(it) }
+        } else {
+            currentAyahRequest?.let { playAyah(it) }
+        }
+    }
+
+    fun release() {
+        stopProgressTracker()
+        controllerFuture?.let { future ->
+            MediaController.releaseFuture(future)
+            controllerFuture = null
+        }
+        controller = null
+        scope.cancel()
     }
 }

@@ -7,6 +7,7 @@ import com.example.sadkaquran.data.local.SadkaPreferences
 import com.example.sadkaquran.data.models.Data
 import com.example.sadkaquran.data.models.Shikh
 import com.example.sadkaquran.playback.QuranPlayerManager
+import com.example.sadkaquran.playback.SurahPlaybackRequest
 import com.example.sadkaquran.repo.Repository
 import com.example.sadkaquran.util.Constants
 import com.example.sadkaquran.util.Resource
@@ -111,10 +112,12 @@ class MoshafViewModel @Inject constructor(
             val reciterId = selectedReciterId.value
             val reciterName = selectedReciterName.value
             playerManager.playSurah(
-                surahNumber = surah.number,
-                surahName = surah.name,
-                reciterId = reciterId,
-                reciterName = reciterName
+                SurahPlaybackRequest(
+                    surahNumber = surah.number,
+                    surahName = surah.name,
+                    reciterId = reciterId,
+                    reciterName = reciterName
+                )
             )
         }
     }

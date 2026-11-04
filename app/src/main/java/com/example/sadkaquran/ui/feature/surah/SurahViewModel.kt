@@ -6,7 +6,9 @@ import com.example.sadkaquran.data.local.BookmarkItem
 import com.example.sadkaquran.data.local.SadkaPreferences
 import com.example.sadkaquran.data.models.AyahX
 import com.example.sadkaquran.data.models.DataX
+import com.example.sadkaquran.playback.AyahPlaybackRequest
 import com.example.sadkaquran.playback.QuranPlayerManager
+import com.example.sadkaquran.playback.SurahPlaybackRequest
 import com.example.sadkaquran.repo.Repository
 import com.example.sadkaquran.util.Constants
 import com.example.sadkaquran.util.Resource
@@ -49,6 +51,7 @@ class SurahViewModel @Inject constructor(
     val currentSurahNumber: StateFlow<Int?> = playerManager.currentSurahNumber
     val currentAyahNumber: StateFlow<Int?> = playerManager.currentAyahNumber
     val isBuffering: StateFlow<Boolean> = playerManager.isBuffering
+    val playbackError: StateFlow<String?> = playerManager.playbackError
 
     fun getSurah(number: Int) {
         _surah.value = Resource.Loading
@@ -102,22 +105,35 @@ class SurahViewModel @Inject constructor(
             playerManager.resume()
         } else {
             playerManager.playSurah(
-                surahNumber = surah.number,
-                surahName = surah.name,
-                reciterId = selectedReciterId.value,
-                reciterName = selectedReciterName.value
+                SurahPlaybackRequest(
+                    surahNumber = surah.number,
+                    surahName = surah.name,
+                    reciterId = selectedReciterId.value,
+                    reciterName = selectedReciterName.value
+                )
             )
         }
     }
 
     fun playAyahAudio(ayah: AyahX, surah: DataX) {
         playerManager.playAyah(
-            surahNumber = surah.number,
-            ayahNumberInSurah = ayah.numberInSurah,
-            ayahNumberInQuran = ayah.number,
-            surahName = surah.name,
-            reciterId = selectedReciterId.value,
-            reciterName = selectedReciterName.value
+            AyahPlaybackRequest(
+                surahNumber = surah.number,
+                ayahNumberInSurah = ayah.numberInSurah,
+                ayahNumberInQuran = ayah.number,
+                totalAyahsInSurah = surah.numberOfAyahs,
+                surahName = surah.name,
+                reciterId = selectedReciterId.value,
+                reciterName = selectedReciterName.value
+            )
         )
+    }
+
+    fun clearPlaybackError() {
+        playerManager.clearPlaybackError()
+    }
+
+    fun retryPlayback() {
+        playerManager.retryPlayback()
     }
 }
