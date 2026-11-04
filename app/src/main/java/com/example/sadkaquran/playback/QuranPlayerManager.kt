@@ -13,6 +13,10 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.sadkaquran.R
+import com.example.sadkaquran.data.local.SadkaPreferences
+import com.example.sadkaquran.data.models.Shikh
+import com.example.sadkaquran.repo.Repository
+import com.example.sadkaquran.util.Resource
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -32,7 +36,9 @@ import androidx.core.net.toUri
 
 @Singleton
 class QuranPlayerManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val preferences: SadkaPreferences,
+    private val repository: Repository
 ) {
     companion object {
         private const val TAG = "QuranPlayerManager"
@@ -70,6 +76,15 @@ class QuranPlayerManager @Inject constructor(
     private val _currentAyahNumber = MutableStateFlow<Int?>(null)
     val currentAyahNumber: StateFlow<Int?> = _currentAyahNumber.asStateFlow()
 
+    private val _currentReciterId = MutableStateFlow<String?>(null)
+    val currentReciterId: StateFlow<String?> = _currentReciterId.asStateFlow()
+
+    private val _currentReciterName = MutableStateFlow<String?>(null)
+    val currentReciterName: StateFlow<String?> = _currentReciterName.asStateFlow()
+
+    private val _availableReciters = MutableStateFlow<List<Shikh>>(emptyList())
+    val availableReciters: StateFlow<List<Shikh>> = _availableReciters.asStateFlow()
+
     private val _currentMediaId = MutableStateFlow<String?>(null)
     val currentMediaId: StateFlow<String?> = _currentMediaId.asStateFlow()
 
@@ -86,6 +101,31 @@ class QuranPlayerManager @Inject constructor(
 
     init {
         initializeController()
+        loadReciters()
+        observeSavedReciter()
+    }
+
+    fun loadReciters(forceRefresh: Boolean = false) {
+        scope.launch {
+            try {
+                val res = repository.getAllShikh(forceRefresh)
+                if (res is Resource.Success) {
+                    _availableReciters.value = res.data
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load reciters", e)
+            }
+        }
+    }
+
+    private fun observeSavedReciter() {
+        scope.launch {
+            preferences.reciterIdFlow.collect { id ->
+                if (_currentReciterId.value == null) {
+                    _currentReciterId.value = id
+                }
+            }
+        }
     }
 
     private fun initializeController() {
@@ -189,10 +229,12 @@ class QuranPlayerManager @Inject constructor(
     }
 
     private fun retryWithMirror() {
+        val currentPos = controller?.currentPosition?.coerceAtLeast(0L) ?: 0L
+        val wasPlaying = controller?.isPlaying == true || _isPlaying.value
         if (isPlayingSurah) {
-            currentSurahRequest?.let { playSurahInternal(it, useMirror = true) }
+            currentSurahRequest?.let { playSurahInternal(it, useMirror = true, startPositionMs = currentPos, autoPlay = wasPlaying) }
         } else {
-            currentAyahRequest?.let { playAyahInternal(it, useMirror = true) }
+            currentAyahRequest?.let { playAyahInternal(it, useMirror = true, startPositionMs = currentPos, autoPlay = wasPlaying) }
         }
     }
 
@@ -203,6 +245,8 @@ class QuranPlayerManager @Inject constructor(
             _currentSubtitle.value = ""
             _currentSurahNumber.value = null
             _currentAyahNumber.value = null
+            _currentReciterId.value = null
+            _currentReciterName.value = null
             return
         }
 
@@ -217,6 +261,15 @@ class QuranPlayerManager @Inject constructor(
 
             val ayahNum = extras.getInt("ayah_number", -1)
             _currentAyahNumber.value = if (ayahNum > 0) ayahNum else null
+
+            val reciterId = extras.getString("reciter_id")
+            if (!reciterId.isNullOrBlank()) {
+                _currentReciterId.value = reciterId
+            }
+            val reciterName = extras.getString("reciter_name")
+            if (!reciterName.isNullOrBlank()) {
+                _currentReciterName.value = reciterName
+            }
         } else {
             // Fallback parsing from mediaId
             if (mediaItem.mediaId.startsWith("surah_")) {
@@ -297,7 +350,59 @@ class QuranPlayerManager @Inject constructor(
         )
     }
 
-    private fun playSurahInternal(request: SurahPlaybackRequest, useMirror: Boolean) {
+    fun switchReciter(shikh: Shikh) {
+        switchReciter(shikh.identifier, shikh.name)
+    }
+
+    fun switchReciter(newReciterId: String, newReciterName: String) {
+        scope.launch {
+            preferences.saveReciter(newReciterId, newReciterName)
+        }
+
+        _currentReciterId.value = newReciterId
+        _currentReciterName.value = newReciterName
+
+        val player = controller
+        val currentPos = player?.currentPosition?.coerceAtLeast(0L) ?: 0L
+        val wasPlaying = player?.isPlaying == true || _isPlaying.value
+
+        if (isPlayingSurah && currentSurahRequest != null) {
+            val updatedRequest = currentSurahRequest!!.copy(
+                reciterId = newReciterId,
+                reciterName = newReciterName
+            )
+            currentSurahRequest = updatedRequest
+            hasAttemptedMirrorRetry = false
+            _playbackError.value = null
+            playSurahInternal(
+                request = updatedRequest,
+                useMirror = false,
+                startPositionMs = currentPos,
+                autoPlay = wasPlaying
+            )
+        } else if (!isPlayingSurah && currentAyahRequest != null) {
+            val updatedRequest = currentAyahRequest!!.copy(
+                reciterId = newReciterId,
+                reciterName = newReciterName
+            )
+            currentAyahRequest = updatedRequest
+            hasAttemptedMirrorRetry = false
+            _playbackError.value = null
+            playAyahInternal(
+                request = updatedRequest,
+                useMirror = false,
+                startPositionMs = currentPos,
+                autoPlay = wasPlaying
+            )
+        }
+    }
+
+    private fun playSurahInternal(
+        request: SurahPlaybackRequest,
+        useMirror: Boolean,
+        startPositionMs: Long = 0L,
+        autoPlay: Boolean = true
+    ) {
         val player = controller ?: return
         val resolved =
             QuranAudioResolver.resolveSurahReciter(request.reciterId, request.reciterName)
@@ -310,6 +415,7 @@ class QuranPlayerManager @Inject constructor(
         val extras = Bundle().apply {
             putInt("surah_number", request.surahNumber)
             putString("reciter_id", resolved.reciterId)
+            putString("reciter_name", resolved.reciterName)
         }
 
         val artworkUri =
@@ -328,9 +434,16 @@ class QuranPlayerManager @Inject constructor(
             .setMediaMetadata(metadata)
             .build()
 
-        player.setMediaItem(mediaItem)
+        _currentReciterId.value = resolved.reciterId
+        _currentReciterName.value = resolved.reciterName
+
+        player.setMediaItem(mediaItem, startPositionMs)
         player.prepare()
-        player.play()
+        if (autoPlay) {
+            player.play()
+        } else {
+            player.pause()
+        }
     }
 
     fun playAyah(request: AyahPlaybackRequest) {
@@ -370,7 +483,12 @@ class QuranPlayerManager @Inject constructor(
         )
     }
 
-    private fun playAyahInternal(request: AyahPlaybackRequest, useMirror: Boolean) {
+    private fun playAyahInternal(
+        request: AyahPlaybackRequest,
+        useMirror: Boolean,
+        startPositionMs: Long = 0L,
+        autoPlay: Boolean = true
+    ) {
         val player = controller ?: return
         val resolved = QuranAudioResolver.resolveAyahReciter(request.reciterId, request.reciterName)
         val url = QuranAudioResolver.buildAyahAudioUrl(
@@ -389,6 +507,7 @@ class QuranPlayerManager @Inject constructor(
             putInt("surah_number", request.surahNumber)
             putInt("ayah_number", request.ayahNumberInSurah)
             putString("reciter_id", resolved.reciterId)
+            putString("reciter_name", resolved.reciterName)
         }
 
         val artworkUri =
@@ -407,9 +526,16 @@ class QuranPlayerManager @Inject constructor(
             .setMediaMetadata(metadata)
             .build()
 
-        player.setMediaItem(mediaItem)
+        _currentReciterId.value = resolved.reciterId
+        _currentReciterName.value = resolved.reciterName
+
+        player.setMediaItem(mediaItem, startPositionMs)
         player.prepare()
-        player.play()
+        if (autoPlay) {
+            player.play()
+        } else {
+            player.pause()
+        }
     }
 
     fun togglePlayPause() {

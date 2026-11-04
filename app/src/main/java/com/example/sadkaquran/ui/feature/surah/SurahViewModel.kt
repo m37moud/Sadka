@@ -98,18 +98,21 @@ class SurahViewModel @Inject constructor(
     }
 
     fun playSurahAudio(surah: DataX) {
-        val isCurrentlyPlaying = (currentSurahNumber.value == surah.number && isPlaying.value)
-        if (isCurrentlyPlaying) {
+        val reciterId = selectedReciterId.value
+        val reciterName = selectedReciterName.value
+        val isSameSurahAndReciter = (currentSurahNumber.value == surah.number && playerManager.currentReciterId.value == reciterId)
+
+        if (isSameSurahAndReciter && isPlaying.value) {
             playerManager.pause()
-        } else if (currentSurahNumber.value == surah.number) {
+        } else if (isSameSurahAndReciter) {
             playerManager.resume()
         } else {
             playerManager.playSurah(
                 SurahPlaybackRequest(
                     surahNumber = surah.number,
                     surahName = surah.name,
-                    reciterId = selectedReciterId.value,
-                    reciterName = selectedReciterName.value
+                    reciterId = reciterId,
+                    reciterName = reciterName
                 )
             )
         }

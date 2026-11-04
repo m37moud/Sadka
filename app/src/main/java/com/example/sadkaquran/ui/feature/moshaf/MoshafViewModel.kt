@@ -100,17 +100,18 @@ class MoshafViewModel @Inject constructor(
         viewModelScope.launch {
             preferences.saveReciter(shikh.identifier, shikh.name)
         }
+        playerManager.switchReciter(shikh)
     }
 
     fun playOrToggleSurah(surah: Data) {
         val currentSurah = currentSurahNumber.value
-        val isSurahPlaying = isPlaying.value
+        val reciterId = selectedReciterId.value
+        val reciterName = selectedReciterName.value
+        val isSameSurahAndReciter = (currentSurah == surah.number && playerManager.currentReciterId.value == reciterId)
 
-        if (currentSurah == surah.number) {
+        if (isSameSurahAndReciter) {
             playerManager.togglePlayPause()
         } else {
-            val reciterId = selectedReciterId.value
-            val reciterName = selectedReciterName.value
             playerManager.playSurah(
                 SurahPlaybackRequest(
                     surahNumber = surah.number,

@@ -12,6 +12,8 @@
     <string name="retry">إعادة المحاولة</string>
 
     <!-- Reciter Picker -->
+    <string name="reciter">القارئ</string>
+    <string name="change_reciter">تغيير القارئ</string>
     <string name="reciter_picker_title">اختيار القارئ</string>
     <string name="reciter_picker_search_placeholder">ابحث عن القارئ (Search reciter)...</string>
     <string name="reciter_tab_all">الكل</string>
