@@ -174,6 +174,31 @@ object QuranTypography {
         fontSize = 15.sp,
         lineHeight = 22.sp
     )
+
+    val surahItemName = TextStyle(
+        fontFamily = AmiriQuranFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+        lineHeight = 32.sp,
+        textAlign = TextAlign.End,
+        textDirection = TextDirection.Rtl
+    )
+
+    val headerTitle = TextStyle(
+        fontFamily = AmiriQuranFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 24.sp,
+        lineHeight = 36.sp,
+        textDirection = TextDirection.Rtl
+    )
+
+    val bannerSurahTitle = TextStyle(
+        fontFamily = AmiriQuranFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 17.sp,
+        lineHeight = 26.sp,
+        textDirection = TextDirection.Rtl
+    )
 }
 
 // Backward-compatibility bridge for any M2 component references

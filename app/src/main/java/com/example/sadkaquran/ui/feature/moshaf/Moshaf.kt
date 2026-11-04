@@ -60,6 +60,7 @@ import com.example.sadkaquran.data.models.Data
 import com.example.sadkaquran.ui.component.ErrorUI
 import com.example.sadkaquran.ui.component.LoadingScreen
 import com.example.sadkaquran.ui.component.ReciterPickerDialog
+import com.example.sadkaquran.ui.theme.QuranTypography
 import com.example.sadkaquran.ui.theme.Shapes
 import com.example.sadkaquran.util.Resource
 
@@ -202,11 +203,10 @@ private fun MoshafHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = "القرآن الكريم",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = QuranTypography.headerTitle,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
@@ -335,16 +335,20 @@ fun LastReadBanner(
                     color = MaterialTheme.colorScheme.secondary,
                     fontWeight = FontWeight.Bold
                 )
+                val cleanSurahName = remember(lastRead.surahName) {
+                    lastRead.surahName.trim().removePrefix("\uFEFF")
+                }
                 val surahTitle =
-                    if (lastRead.surahName.contains("سورة") || lastRead.surahName.contains("سُورَة"))
-                        lastRead.surahName
+                    if (cleanSurahName.contains("سورة") || cleanSurahName.contains("سُورَة"))
+                        cleanSurahName
                     else
-                        "سورة ${lastRead.surahName}"
+                        "سورة $cleanSurahName"
                 Text(
                     text = "$surahTitle (الآية ${lastRead.ayahNumber})",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = QuranTypography.bannerSurahTitle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -378,6 +382,10 @@ fun SurahItem(
         label = "cardColor"
     )
 
+    val cleanArabicName = remember(surah.name) {
+        surah.name.trim().removePrefix("\uFEFF")
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -396,7 +404,7 @@ fun SurahItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Surah Number Badge
@@ -423,31 +431,41 @@ fun SurahItem(
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             // Surah English Name & Meta
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
                     text = surah.englishName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${surah.revelationType} • ${surah.numberOfAyahs} Ayahs",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Arabic Name
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Arabic Surah Name in authentic Amiri Quran font
             Text(
-                text = surah.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                text = cleanArabicName,
+                style = QuranTypography.surahItemName,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 12.dp)
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(end = 8.dp)
             )
 
             // Audio Play/Pause Button

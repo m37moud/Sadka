@@ -59,6 +59,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.res.stringResource
 import com.example.sadkaquran.R
 import com.example.sadkaquran.playback.QuranPlayerManager
+import com.example.sadkaquran.ui.theme.QuranTypography
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -292,8 +293,7 @@ fun FullPlayerSheetContent(
 
         Text(
             text = currentTitle,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
+            style = QuranTypography.surahTitle,
             color = MaterialTheme.colorScheme.onSurface
         )
 
