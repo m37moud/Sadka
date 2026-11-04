@@ -1,6 +1,8 @@
 package com.example.sadkaquran.data.remote
 
-import com.example.sadkaquran.data.models.*
+import com.example.sadkaquran.data.models.Elmoshaf
+import com.example.sadkaquran.data.models.Shiks
+import com.example.sadkaquran.data.models.Surah
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path

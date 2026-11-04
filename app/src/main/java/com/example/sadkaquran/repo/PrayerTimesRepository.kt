@@ -74,7 +74,8 @@ class PrayerTimesRepository @Inject constructor(
         calculation: PrayerCalculationSettings,
         forceRefresh: Boolean = false
     ): Resource<List<PrayerDayData>> = withContext(Dispatchers.IO) {
-        val cacheKey = "$year-$month-${location.latitude}-${location.longitude}-${location.city}-${calculation.method}-${calculation.school}"
+        val cacheKey =
+            "$year-$month-${location.latitude}-${location.longitude}-${location.city}-${calculation.method}-${calculation.school}"
         if (!forceRefresh && cachedMonthlyCalendar != null && cachedCalendarKey == cacheKey) {
             return@withContext Resource.Success(cachedMonthlyCalendar!!)
         }

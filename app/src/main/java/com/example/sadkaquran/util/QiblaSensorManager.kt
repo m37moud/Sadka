@@ -64,7 +64,8 @@ class QiblaSensorManager @Inject constructor(
                         )
                         if (success) {
                             SensorManager.getOrientation(rotationMatrix, orientationAngles)
-                            val azimuthInDegrees = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
+                            val azimuthInDegrees =
+                                Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
                             val normalizedHeading = (azimuthInDegrees + 360) % 360
                             trySend(normalizedHeading)
                         }
@@ -79,10 +80,18 @@ class QiblaSensorManager @Inject constructor(
             sensorManager.registerListener(listener, rotationSensor, SensorManager.SENSOR_DELAY_UI)
         } else {
             if (accelerometer != null) {
-                sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_UI)
+                sensorManager.registerListener(
+                    listener,
+                    accelerometer,
+                    SensorManager.SENSOR_DELAY_UI
+                )
             }
             if (magnetometer != null) {
-                sensorManager.registerListener(listener, magnetometer, SensorManager.SENSOR_DELAY_UI)
+                sensorManager.registerListener(
+                    listener,
+                    magnetometer,
+                    SensorManager.SENSOR_DELAY_UI
+                )
             }
         }
 

@@ -8,9 +8,7 @@ import android.os.Build
 import android.util.Log
 import com.example.sadkaquran.data.local.PrayerNotificationSettings
 import com.example.sadkaquran.data.models.prayer.PrayerTimings
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 class PrayerAlarmScheduler(private val context: Context) {
 
@@ -24,10 +22,28 @@ class PrayerAlarmScheduler(private val context: Context) {
 
         val prayers = listOf(
             PrayerAlarmItem("Fajr", "الفجر", timings.fajr, notificationSettings.fajrEnabled, 101),
-            PrayerAlarmItem("Sunrise", "الشروق", timings.sunrise, notificationSettings.sunriseEnabled, 102),
-            PrayerAlarmItem("Dhuhr", "الظهر", timings.dhuhr, notificationSettings.dhuhrEnabled, 103),
+            PrayerAlarmItem(
+                "Sunrise",
+                "الشروق",
+                timings.sunrise,
+                notificationSettings.sunriseEnabled,
+                102
+            ),
+            PrayerAlarmItem(
+                "Dhuhr",
+                "الظهر",
+                timings.dhuhr,
+                notificationSettings.dhuhrEnabled,
+                103
+            ),
             PrayerAlarmItem("Asr", "العصر", timings.asr, notificationSettings.asrEnabled, 104),
-            PrayerAlarmItem("Maghrib", "المغرب", timings.maghrib, notificationSettings.maghribEnabled, 105),
+            PrayerAlarmItem(
+                "Maghrib",
+                "المغرب",
+                timings.maghrib,
+                notificationSettings.maghribEnabled,
+                105
+            ),
             PrayerAlarmItem("Isha", "العشاء", timings.isha, notificationSettings.ishaEnabled, 106)
         )
 

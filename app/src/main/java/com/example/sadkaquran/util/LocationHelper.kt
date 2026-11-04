@@ -88,7 +88,8 @@ class LocationHelper @Inject constructor(
                 val addresses = geocoder.getFromLocation(latitude, longitude, 1)
                 if (!addresses.isNullOrEmpty()) {
                     val address = addresses[0]
-                    val city = address.locality ?: address.subAdminArea ?: address.adminArea ?: Constants.DEFAULT_CITY
+                    val city = address.locality ?: address.subAdminArea ?: address.adminArea
+                    ?: Constants.DEFAULT_CITY
                     val country = address.countryName ?: Constants.DEFAULT_COUNTRY
                     Pair(city, country)
                 } else {
@@ -99,7 +100,8 @@ class LocationHelper @Inject constructor(
                 val addresses = geocoder.getFromLocation(latitude, longitude, 1)
                 if (!addresses.isNullOrEmpty()) {
                     val address = addresses[0]
-                    val city = address.locality ?: address.subAdminArea ?: address.adminArea ?: Constants.DEFAULT_CITY
+                    val city = address.locality ?: address.subAdminArea ?: address.adminArea
+                    ?: Constants.DEFAULT_CITY
                     val country = address.countryName ?: Constants.DEFAULT_COUNTRY
                     Pair(city, country)
                 } else {

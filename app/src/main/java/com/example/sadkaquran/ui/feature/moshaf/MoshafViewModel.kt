@@ -11,7 +11,12 @@ import com.example.sadkaquran.repo.Repository
 import com.example.sadkaquran.util.Constants
 import com.example.sadkaquran.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,34 +40,43 @@ class MoshafViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_RECITER_ID)
 
     val selectedReciterName: StateFlow<String> = preferences.reciterNameFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_RECITER_NAME)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            Constants.DEFAULT_RECITER_NAME
+        )
 
     val lastRead: StateFlow<LastReadInfo> = preferences.lastReadFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LastReadInfo(1, "الفاتحة", 1))
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            LastReadInfo(1, "الفاتحة", 1)
+        )
 
     val isPlaying: StateFlow<Boolean> = playerManager.isPlaying
     val currentSurahNumber: StateFlow<Int?> = playerManager.currentSurahNumber
     val isBuffering: StateFlow<Boolean> = playerManager.isBuffering
 
     // Filtered surah list based on search query
-    val filteredMoshafList: StateFlow<List<Data>> = combine(_moshafList, _searchQuery) { res, query ->
-        if (res is Resource.Success) {
-            val list = res.data
-            if (query.isBlank()) {
-                list
-            } else {
-                val q = query.trim().lowercase()
-                list.filter { surah ->
-                    surah.name.contains(q) ||
-                    surah.englishName.lowercase().contains(q) ||
-                    surah.englishNameTranslation.lowercase().contains(q) ||
-                    surah.number.toString() == q
+    val filteredMoshafList: StateFlow<List<Data>> =
+        combine(_moshafList, _searchQuery) { res, query ->
+            if (res is Resource.Success) {
+                val list = res.data
+                if (query.isBlank()) {
+                    list
+                } else {
+                    val q = query.trim().lowercase()
+                    list.filter { surah ->
+                        surah.name.contains(q) ||
+                                surah.englishName.lowercase().contains(q) ||
+                                surah.englishNameTranslation.lowercase().contains(q) ||
+                                surah.number.toString() == q
+                    }
                 }
+            } else {
+                emptyList()
             }
-        } else {
-            emptyList()
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         loadData()

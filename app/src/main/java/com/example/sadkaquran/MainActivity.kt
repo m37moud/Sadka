@@ -14,7 +14,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.AccessTime
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -81,7 +87,8 @@ fun MainScreen(playerManager: QuranPlayerManager) {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val isSplash = currentRoute == null || currentRoute == Screens.Splash.route
-    val showBottomBar = currentRoute == Screens.Moshaf.route || currentRoute == Screens.PrayerTimes.route
+    val showBottomBar =
+        currentRoute == Screens.Moshaf.route || currentRoute == Screens.PrayerTimes.route
 
     Scaffold(
         bottomBar = {

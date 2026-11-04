@@ -1,7 +1,6 @@
 package com.example.sadkaquran.ui.feature.prayer
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sadkaquran.alarm.PrayerAlarmScheduler
@@ -56,17 +55,21 @@ class PrayerTimesViewModel @Inject constructor(
     private val _dailyState = MutableStateFlow<Resource<PrayerDayData>>(Resource.Loading)
     val dailyState: StateFlow<Resource<PrayerDayData>> = _dailyState.asStateFlow()
 
-    private val _monthlyCalendarState = MutableStateFlow<Resource<List<PrayerDayData>>>(Resource.Loading)
-    val monthlyCalendarState: StateFlow<Resource<List<PrayerDayData>>> = _monthlyCalendarState.asStateFlow()
+    private val _monthlyCalendarState =
+        MutableStateFlow<Resource<List<PrayerDayData>>>(Resource.Loading)
+    val monthlyCalendarState: StateFlow<Resource<List<PrayerDayData>>> =
+        _monthlyCalendarState.asStateFlow()
 
     private val _locationSettings = MutableStateFlow(PrayerLocationSettings())
     val locationSettings: StateFlow<PrayerLocationSettings> = _locationSettings.asStateFlow()
 
     private val _calculationSettings = MutableStateFlow(PrayerCalculationSettings())
-    val calculationSettings: StateFlow<PrayerCalculationSettings> = _calculationSettings.asStateFlow()
+    val calculationSettings: StateFlow<PrayerCalculationSettings> =
+        _calculationSettings.asStateFlow()
 
     private val _notificationSettings = MutableStateFlow(PrayerNotificationSettings())
-    val notificationSettings: StateFlow<PrayerNotificationSettings> = _notificationSettings.asStateFlow()
+    val notificationSettings: StateFlow<PrayerNotificationSettings> =
+        _notificationSettings.asStateFlow()
 
     private val _qiblaDirection = MutableStateFlow(0.0)
     val qiblaDirection: StateFlow<Double> = _qiblaDirection.asStateFlow()
@@ -200,7 +203,10 @@ class PrayerTimesViewModel @Inject constructor(
 
             if (result is Resource.Success) {
                 startCountdownTicker(result.data.timings)
-                alarmScheduler.schedulePrayerAlarms(result.data.timings, _notificationSettings.value)
+                alarmScheduler.schedulePrayerAlarms(
+                    result.data.timings,
+                    _notificationSettings.value
+                )
             }
         }
     }

@@ -2,7 +2,15 @@ package com.example.sadkaquran.data.local
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.sadkaquran.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -220,7 +228,13 @@ class SadkaPreferences @Inject constructor(
             )
         }
 
-    suspend fun savePrayerLocation(useGps: Boolean, city: String, country: String, lat: Double, lng: Double) {
+    suspend fun savePrayerLocation(
+        useGps: Boolean,
+        city: String,
+        country: String,
+        lat: Double,
+        lng: Double
+    ) {
         context.dataStore.edit { preferences ->
             preferences[Keys.PRAYER_USE_GPS] = useGps
             preferences[Keys.PRAYER_CITY] = city
@@ -241,10 +255,14 @@ class SadkaPreferences @Inject constructor(
         context.dataStore.edit { preferences ->
             when (prayerName.lowercase()) {
                 "fajr" -> preferences[Keys.NOTIF_FAJR] = !(preferences[Keys.NOTIF_FAJR] ?: true)
-                "sunrise" -> preferences[Keys.NOTIF_SUNRISE] = !(preferences[Keys.NOTIF_SUNRISE] ?: false)
+                "sunrise" -> preferences[Keys.NOTIF_SUNRISE] =
+                    !(preferences[Keys.NOTIF_SUNRISE] ?: false)
+
                 "dhuhr" -> preferences[Keys.NOTIF_DHUHR] = !(preferences[Keys.NOTIF_DHUHR] ?: true)
                 "asr" -> preferences[Keys.NOTIF_ASR] = !(preferences[Keys.NOTIF_ASR] ?: true)
-                "maghrib" -> preferences[Keys.NOTIF_MAGHRIB] = !(preferences[Keys.NOTIF_MAGHRIB] ?: true)
+                "maghrib" -> preferences[Keys.NOTIF_MAGHRIB] =
+                    !(preferences[Keys.NOTIF_MAGHRIB] ?: true)
+
                 "isha" -> preferences[Keys.NOTIF_ISHA] = !(preferences[Keys.NOTIF_ISHA] ?: true)
             }
         }

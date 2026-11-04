@@ -125,7 +125,11 @@ object AvailableMethods {
         MethodItem(5, "Egyptian General Authority of Survey", "الهيئة المصرية العامة للمساحة"),
         MethodItem(4, "Umm Al-Qura University, Makkah", "جامعة أم القرى - مكة المكرمة"),
         MethodItem(3, "Muslim World League (MWL)", "رابطة العالم الإسلامي"),
-        MethodItem(2, "Islamic Society of North America (ISNA)", "الجمعية الإسلامية لأمريكا الشمالية"),
+        MethodItem(
+            2,
+            "Islamic Society of North America (ISNA)",
+            "الجمعية الإسلامية لأمريكا الشمالية"
+        ),
         MethodItem(1, "University of Islamic Sciences, Karachi", "جامعة العلوم الإسلامية بكراتشي"),
         MethodItem(13, "Diyanet İşleri Başkanlığı, Turkey", "رئاسة الشؤون الدينية التركية"),
         MethodItem(8, "Gulf Region", "منطقة الخليج العربي")

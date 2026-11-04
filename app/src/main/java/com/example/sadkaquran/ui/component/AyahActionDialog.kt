@@ -6,11 +6,27 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.BookmarkAdded
+import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,7 +92,8 @@ fun AyahActionBottomSheet(
                 subtitle = "حفظ موضع الآية للرجوع إليها لاحقاً",
                 onClick = {
                     onToggleBookmark()
-                    val msg = if (isBookmarked) "تمت إزالة العلامة" else "تمت إضافة العلامة المرجعية"
+                    val msg =
+                        if (isBookmarked) "تمت إزالة العلامة" else "تمت إضافة العلامة المرجعية"
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     onDismiss()
                 }
@@ -93,7 +110,8 @@ fun AyahActionBottomSheet(
                 title = "نسخ الآية (Copy)",
                 subtitle = "نسخ نص الآية مع الإسناد للحافظة",
                 onClick = {
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clipboard =
+                        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val formattedShareText = QuranTextFormatter.formatAyahForShare(
                         surahNumber = surahNumber,
                         ayahNumberInSurah = ayah.numberInSurah,

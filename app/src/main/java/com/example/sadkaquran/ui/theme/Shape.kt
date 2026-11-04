@@ -23,7 +23,8 @@ object IslamicShapes {
     val pill = RoundedCornerShape(50.dp)
 
     // Islamic arch inspired container shape (gentler curve at bottom, rounded top)
-    val archTop = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
+    val archTop =
+        RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
 
     // Surah card shape with smooth modern contour
     val surahCard = RoundedCornerShape(16.dp)

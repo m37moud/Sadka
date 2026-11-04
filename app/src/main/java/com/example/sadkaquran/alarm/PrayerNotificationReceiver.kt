@@ -17,7 +17,8 @@ class PrayerNotificationReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == PrayerAlarmScheduler.ACTION_PRAYER_ALARM) {
-            val prayerNameAr = intent.getStringExtra(PrayerAlarmScheduler.EXTRA_PRAYER_NAME_AR) ?: "الصلاة"
+            val prayerNameAr =
+                intent.getStringExtra(PrayerAlarmScheduler.EXTRA_PRAYER_NAME_AR) ?: "الصلاة"
             val prayerTime = intent.getStringExtra(PrayerAlarmScheduler.EXTRA_PRAYER_TIME) ?: ""
 
             showPrayerNotification(context, prayerNameAr, prayerTime)
@@ -25,7 +26,8 @@ class PrayerNotificationReceiver : BroadcastReceiver() {
     }
 
     private fun showPrayerNotification(context: Context, prayerNameAr: String, prayerTime: String) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         createNotificationChannel(notificationManager)
 
@@ -42,8 +44,10 @@ class PrayerNotificationReceiver : BroadcastReceiver() {
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
         val cleanTime = prayerTime.split(" ")[0].trim()
-        val title = if (prayerNameAr == "الشروق") "حان الآن وقت الشروق" else "حان الآن موعد صلاة $prayerNameAr"
-        val message = if (prayerNameAr == "الشروق") "أشرقت الشمس ($cleanTime)" else "حي على الصلاة ($cleanTime)"
+        val title =
+            if (prayerNameAr == "الشروق") "حان الآن وقت الشروق" else "حان الآن موعد صلاة $prayerNameAr"
+        val message =
+            if (prayerNameAr == "الشروق") "أشرقت الشمس ($cleanTime)" else "حي على الصلاة ($cleanTime)"
 
         val notification = NotificationCompat.Builder(context, PRAYER_NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_quran_logo)

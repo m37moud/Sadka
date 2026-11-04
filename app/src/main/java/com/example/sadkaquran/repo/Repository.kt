@@ -1,7 +1,9 @@
 package com.example.sadkaquran.repo
 
 import android.util.Log
-import com.example.sadkaquran.data.models.*
+import com.example.sadkaquran.data.models.Data
+import com.example.sadkaquran.data.models.DataX
+import com.example.sadkaquran.data.models.Shikh
 import com.example.sadkaquran.data.remote.QuranApiService
 import com.example.sadkaquran.util.Resource
 import kotlinx.coroutines.Dispatchers
@@ -34,24 +36,25 @@ class Repository @Inject constructor(
         }
     }
 
-    suspend fun getMoshafList(forceRefresh: Boolean = false): Resource<List<Data>> = withContext(Dispatchers.IO) {
-        if (!forceRefresh && cachedMoshafList != null) {
-            return@withContext Resource.Success(cachedMoshafList!!)
-        }
-        try {
-            val response = service.getElmoshaf()
-            if (response.isSuccessful && response.body() != null) {
-                val data = response.body()!!.data
-                cachedMoshafList = data
-                Resource.Success(data)
-            } else {
-                Resource.Error(response.message().ifBlank { "Failed to load Surahs" })
+    suspend fun getMoshafList(forceRefresh: Boolean = false): Resource<List<Data>> =
+        withContext(Dispatchers.IO) {
+            if (!forceRefresh && cachedMoshafList != null) {
+                return@withContext Resource.Success(cachedMoshafList!!)
             }
-        } catch (e: Exception) {
-            Log.e("Repository", "Error fetching Moshaf list", e)
-            Resource.Error(e.localizedMessage ?: "Network error occurred")
+            try {
+                val response = service.getElmoshaf()
+                if (response.isSuccessful && response.body() != null) {
+                    val data = response.body()!!.data
+                    cachedMoshafList = data
+                    Resource.Success(data)
+                } else {
+                    Resource.Error(response.message().ifBlank { "Failed to load Surahs" })
+                }
+            } catch (e: Exception) {
+                Log.e("Repository", "Error fetching Moshaf list", e)
+                Resource.Error(e.localizedMessage ?: "Network error occurred")
+            }
         }
-    }
 
     suspend fun getSurah(number: Int): Resource<DataX> = withContext(Dispatchers.IO) {
         try {
@@ -67,28 +70,32 @@ class Repository @Inject constructor(
         }
     }
 
-    suspend fun getAllShikh(forceRefresh: Boolean = false): Resource<List<Shikh>> = withContext(Dispatchers.IO) {
-        if (!forceRefresh && cachedShikhList != null) {
-            return@withContext Resource.Success(cachedShikhList!!)
-        }
-        try {
-            val response = service.getAllShikh()
-            if (response.isSuccessful && response.body() != null) {
-                // Filter reciters that have audio format
-                val reciters = response.body()!!.data.filter {
-                    it.format.equals("audio", ignoreCase = true) || it.type.equals("versebyverse", ignoreCase = true)
-                }
-                val list = if (reciters.isNotEmpty()) reciters else response.body()!!.data
-                cachedShikhList = list
-                Resource.Success(list)
-            } else {
-                Resource.Error(response.message().ifBlank { "Failed to load reciters" })
+    suspend fun getAllShikh(forceRefresh: Boolean = false): Resource<List<Shikh>> =
+        withContext(Dispatchers.IO) {
+            if (!forceRefresh && cachedShikhList != null) {
+                return@withContext Resource.Success(cachedShikhList!!)
             }
-        } catch (e: Exception) {
-            Log.e("Repository", "Error fetching reciters", e)
-            Resource.Error(e.localizedMessage ?: "Network error occurred")
+            try {
+                val response = service.getAllShikh()
+                if (response.isSuccessful && response.body() != null) {
+                    // Filter reciters that have audio format
+                    val reciters = response.body()!!.data.filter {
+                        it.format.equals(
+                            "audio",
+                            ignoreCase = true
+                        ) || it.type.equals("versebyverse", ignoreCase = true)
+                    }
+                    val list = if (reciters.isNotEmpty()) reciters else response.body()!!.data
+                    cachedShikhList = list
+                    Resource.Success(list)
+                } else {
+                    Resource.Error(response.message().ifBlank { "Failed to load reciters" })
+                }
+            } catch (e: Exception) {
+                Log.e("Repository", "Error fetching reciters", e)
+                Resource.Error(e.localizedMessage ?: "Network error occurred")
+            }
         }
-    }
 
     fun getSurahAudioUrl(surahNumber: Int, reciterIdentifier: String): String {
         return "https://cdn.islamic.network/quran/audio-surah/128/$reciterIdentifier/$surahNumber.mp3"

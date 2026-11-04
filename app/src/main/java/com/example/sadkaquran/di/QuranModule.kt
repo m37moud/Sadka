@@ -27,7 +27,7 @@ object QuranModule {
     @Provides
     @Singleton
     fun provideInterceptor() = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BASIC
+        level = HttpLoggingInterceptor.Level.BODY
     }
 
     @Provides
@@ -42,7 +42,7 @@ object QuranModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient):QuranApiService{
+    fun provideRetrofit(okHttpClient: OkHttpClient): QuranApiService {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
